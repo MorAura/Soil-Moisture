@@ -56,32 +56,41 @@ void setup() {
   BLEDevice::startAdvertising();
 
   Serial.println("SoilSense BLE Sensor ready & advertising!");
+  pinMode(A4,INPUT);
+  pinMode(A3,INPUT);
 }
 
 void loop() {
   if (deviceConnected) {
     // Replace these simulated values with analogRead() / digital sensor logic
-    int moisture = random(35, 75);              // Moisture percentage (0-100%)
-    int light = random(1200, 4500);             // Light level in Lux
+    //int moisture = random(35, 75);              // Moisture percentage (0-100%)
+    //int light = random(1200, 4500);             // Light level in Lux
     float temp = 21.0 + (random(0, 80) / 10.0);  // Temperature in Celsius
-    int waterLevel = random(300, 700);          // Reservoir water level in ml
+    int humidity = random(0, 100);          // humidity %
 
-    // Format JSON string strictly matching `@section:ble-data-format`
-    char jsonBuffer[128];
-    snprintf(jsonBuffer, sizeof(jsonBuffer),
-      "{\"moisture_percent\":%d,\"light_lux\":%d,\"temperature_celsius\":%.1f,\"water_level_ml\":%d}",
-      moisture, light, temp, waterLevel
+    int moisture = map(analogRead(A4),0,4095,100,0);
+    int light = map(analogRead(A3),0,4095,1000,0);
+    
+    char DataBuffer[128];
+    snprintf(DataBuffer, sizeof(DataBuffer),
+      "%d,%d,%.1f,%d",
+      moisture, light, temp, humidity
     );
 
     // Notify connected mobile client
-    pCharacteristic->setValue(jsonBuffer);
+    pCharacteristic->setValue(DataBuffer);
     pCharacteristic->notify();
 
     Serial.print("BLE Transmitted: ");
-    Serial.println(jsonBuffer);
+    Serial.print(DataBuffer);
+    Serial.print(" ");
+    Serial.print(analogRead(A4));
+    Serial.print(" ");
+    Serial.println(analogRead(A3));
 
-    delay(3000); // Sampling rate: every 3 seconds
+    delay(1000); // Sampling rate: every 3 seconds
   } else {
     delay(1000);
+    BLEDevice::startAdvertising();
   }
 }

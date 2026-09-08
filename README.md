@@ -1,4 +1,4 @@
-# Smartsoil Condition Monitoring
+# Smart Soil Condition Monitoring
 
 An ESP32-powered system for healthier plants and more precise care.
 
@@ -21,10 +21,9 @@ MorAura is designed to monitor plant conditions and help keep them within ideal 
 The prototype uses an ESP32 to collect readings from environmental sensors and share them with a simple mobile app over Bluetooth Low Energy (BLE).
 
 ```text
-Soil moisture sensor  ─┐
-Light intensity sensor ─┤
+Light intensity sensor ─┐
 Temperature sensor     ─┼──> ESP32 ──BLE──> Mobile app
-Humidity sensor        ─┘                    │
+Soil moisture sensor   ─┘                    │
 											 └──> Adjust monitoring ranges
 ```
 
@@ -33,7 +32,6 @@ Humidity sensor        ─┘                    │
 - Soil moisture
 - Light intensity
 - Temperature
-- Humidity
 
 ## Example Monitoring Profile
 
@@ -44,7 +42,6 @@ The following values are illustrative targets for the prototype. They should be 
 | Soil moisture | 40–65% |
 | Light | 1,000–10,000 lux |
 | Temperature | 20–28°C |
-| Humidity | 60–80% |
 
 When a reading leaves its target range, the system should notify the user that the condition is out of range.
 

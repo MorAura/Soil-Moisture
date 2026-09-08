@@ -71,7 +71,7 @@ The field visits will help confirm that the system is practical for real-world s
 - ESP32 development board
 - Soil moisture sensor
 - Light intensity sensor
-- Temperature and humidity sensor
+- Temperature sensor
 - USB cable and a compatible ESP32 development environment
 
 ### Firmware

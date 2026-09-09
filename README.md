@@ -79,6 +79,21 @@ The field visits will help confirm that the system is practical for real-world s
 - Temperature sensor
 - USB cable and a compatible ESP32 development environment
 
+### Parts List
+
+The following parts list is based on the project BOM in [PartsList.pdf](PartsList.pdf).
+
+| Item | Cost | Link |
+| --- | ---: | --- |
+| ESP32 board | 850.00 | MD0929 - SuperMini ESP32-C3 Dev Board Type-C WiFi Bluetooth IoT |
+| Charging Module | 350.00 | Mini Solar Battery Charging Module LiPo CN3065 Input 4.4-6V Out 500mA (MD0397) Products |
+| Solar Panel | 280.00 | BA0146 - Mini Solar Panel 5V 200mA 99x69mm |
+| LiPo Boost | 150.00 | MD0745 - Multi-function Mini Boost Module Step Up Board 5/8/9/12V 1.5A |
+| Soil moisture | 330.00 | Capacitive Soil Moisture Sensor V2.0 (MD0751) Products |
+| Lipo Battery | 530.00 | 3.7V 250mAh Lipo Battery (BA0149) Products |
+| Light sensor | 350.00 | MD0249 - TEMT6000 Professional Light Sensor Module |
+| Total Cost | 2,840.00 | - |
+
 ### Firmware
 
 Firmware is still under development. Add the ESP32 source files to [`Sensor_Code/`](Sensor_Code/) and document the required board configuration, libraries, and wiring here.

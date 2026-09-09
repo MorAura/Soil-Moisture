@@ -18,13 +18,16 @@ MorAura is designed to monitor plant conditions and help keep them within ideal 
 
 ## System Architecture
 
-The prototype uses an ESP32 to collect readings from environmental sensors and share them with a simple mobile app over Bluetooth Low Energy (BLE).
+The prototype uses an ESP32 to collect readings from environmental sensors and share them with a simple mobile app over Bluetooth Low Energy (BLE) or Wi-Fi.
+There are pros and cons to each communication method, and the final implementation has not been decided yet.
 
 ```text
 Light intensity sensor ─┐
-Temperature sensor     ─┼──> ESP32 ──BLE──> Mobile app
-Soil moisture sensor   ─┘                    │
-											 └──> Adjust monitoring ranges
+Temperature sensor     ─┼──> ESP32 ──Wi-Fi / BLE ──> Mobile app
+Soil moisture sensor   ─┘             |      		 	│
+									  |				 	├──> Adjust monitoring ranges
+									  |					|
+									  └──> Webpage (Captive Portal)
 ```
 
 ### Sensors
@@ -60,8 +63,10 @@ The field visits will help confirm that the system is practical for real-world s
 ```text
 .
 ├── README.md
+├── ProjectProposal.pdf
 └── Sensor_Code/
-	└── TODO: add ESP32 firmware
+	└── Sensor_Code.ino
+
 ```
 
 ## Getting Started
@@ -76,7 +81,7 @@ The field visits will help confirm that the system is practical for real-world s
 
 ### Firmware
 
-Firmware is not yet included. Add the ESP32 source files to [`Sensor_Code/`](Sensor_Code/) and document the required board configuration, libraries, and wiring here.
+Firmware is still under development. Add the ESP32 source files to [`Sensor_Code/`](Sensor_Code/) and document the required board configuration, libraries, and wiring here.
 
 ```text
 TODO:

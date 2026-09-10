@@ -12,9 +12,9 @@ Connections:
   Need to finalize temperature measurement but use internal temp for testing
 */
 
-// To be determined experimentally
-#define MoistureMax 4095
-#define MoistureMin 0
+// Determined experimentally
+#define MoistureMax 3100
+#define MoistureMin 1270
 
 // To store old data
 uint8_t moistureHist[168] = {0};
@@ -40,10 +40,17 @@ void readData(){
   ESP_ERROR_CHECK(temperature_sensor_get_celsius(temp_sensor, &tempRead));
   
 
-  uint8_t moistureVal = map(moistureRead,MoistureMin,MoistureMax,0,100);
+  uint8_t moistureVal = map(moistureRead,MoistureMin,MoistureMax,100,0);
   uint8_t lightVal = map(lightRead,0,4095,0,100);
   uint8_t tempVal = round(tempRead);
   
+  Serial.print("Moist : ");
+  Serial.print(moistureRead);
+  Serial.print(" | Light : ");
+  Serial.print(lightRead);
+  Serial.print(" | Temp : ");
+  Serial.println(tempRead);
+
   for(int i = 1; i < 168; i++){
 
     moistureHist[i-1] = moistureHist[i];
@@ -111,24 +118,28 @@ class SharedCharacteristicCallbacks : public BLECharacteristicCallbacks {
       Serial.print("Moisture Max Characteristic written: ");
       Serial.println(*rxData);
       moistHigh = *rxData;
+      pMoistMaxCharacteristic->setValue(&moistHigh, 1);
     }
 
     if (pCharacteristic == pMoistMinCharacteristic) {
       Serial.print("Moisture Min Characteristic written: ");
       Serial.println(*rxData);
       moistLow = *rxData;
+      pMoistMinCharacteristic->setValue(&moistLow, 1);
     }
 
     if (pCharacteristic == pTempMaxCharacteristic) {
       Serial.print("Temperature Max Characteristic written: ");
       Serial.println(*rxData);
       tempHigh = *rxData;
+      pTempMaxCharacteristic->setValue(&tempHigh, 1);
     }
 
     if (pCharacteristic == pTempMinCharacteristic) {
       Serial.print("Temperature Min Characteristic written: ");
       Serial.println(*rxData);
       tempLow = *rxData;
+      pTempMinCharacteristic->setValue(&tempLow, 1);
     }
   }
 };
@@ -151,6 +162,7 @@ void StartComms(){
   // Create the Characteristic Moisture
   pMoistCharacteristic = pService->createCharacteristic(
                       MOIST_CHAR_UUID,
+                      BLECharacteristic::PROPERTY_READ |
                       BLECharacteristic::PROPERTY_NOTIFY
                     );
   pMoistCharacteristic->addDescriptor(new BLE2902());
@@ -158,6 +170,7 @@ void StartComms(){
   // Create the Characteristic Temperature
   pTempCharacteristic = pService->createCharacteristic(
                       TEMP_CHAR_UUID,
+                      BLECharacteristic::PROPERTY_READ |
                       BLECharacteristic::PROPERTY_NOTIFY
                     );
   pTempCharacteristic->addDescriptor(new BLE2902());
@@ -165,6 +178,7 @@ void StartComms(){
   // Create the Characteristic Light
   pLightCharacteristic = pService->createCharacteristic(
                       LIGHT_CHAR_UUID,
+                      BLECharacteristic::PROPERTY_READ |
                       BLECharacteristic::PROPERTY_NOTIFY
                     );
   pLightCharacteristic->addDescriptor(new BLE2902());
@@ -177,6 +191,7 @@ void StartComms(){
                     );
   pMoistMaxCharacteristic->addDescriptor(new BLE2902());
   pMoistMaxCharacteristic->setCallbacks(myWriteCallbacks); // ATTACH CALLBACK
+  pMoistMaxCharacteristic->setValue(&moistHigh, 1);
 
 
   // Create the Characteristic Min moisture
@@ -187,6 +202,7 @@ void StartComms(){
                     );
   pMoistMinCharacteristic->addDescriptor(new BLE2902());
   pMoistMinCharacteristic->setCallbacks(myWriteCallbacks); // ATTACH CALLBACK
+  pMoistMinCharacteristic->setValue(&moistLow, 1);
   
   // Create the Characteristic Max Temperature
   pTempMaxCharacteristic = pService->createCharacteristic(
@@ -196,6 +212,7 @@ void StartComms(){
                     );
   pTempMaxCharacteristic->addDescriptor(new BLE2902());
   pTempMaxCharacteristic->setCallbacks(myWriteCallbacks); // ATTACH CALLBACK
+  pTempMaxCharacteristic->setValue(&tempHigh, 1);
   
   // Create the Characteristic Min Temperature
   pTempMinCharacteristic = pService->createCharacteristic(
@@ -205,6 +222,7 @@ void StartComms(){
                     );
   pTempMinCharacteristic->addDescriptor(new BLE2902());
   pTempMinCharacteristic->setCallbacks(myWriteCallbacks); // ATTACH CALLBACK
+  pTempMinCharacteristic->setValue(&tempLow, 1);
 
   pService->start();
   
@@ -242,19 +260,18 @@ void loop(){
   unsigned long currentMillis = millis();
 
   // 1. THE NON-BLOCKING TIMER
-  if (currentMillis - previousDataMillis >= 10000) {
+  if (currentMillis - previousDataMillis >= 1000) {
     // Save the last time you read the data
     previousDataMillis = currentMillis;
 
     // Trigger the sensor reading
     readData();
-    Serial.println("10 s passed: Read new sensor data.");
   }
 
   if (deviceConnected && !oldDeviceConnected) {
       
-      // Brief delay to let the Android app finish negotiating the MTU
-      delay(500); 
+      
+      delay(1000); 
 
       Serial.println("Sending Moisture Data...");
       pMoistCharacteristic->setValue(moistureHist, sizeof(moistureHist));

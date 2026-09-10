@@ -240,6 +240,7 @@ void StartComms(){
 void setup(){
 
   Serial.begin(115200);
+  Serial.println("Starting Sensor");
 
   // Setup adc pins for moisture and light level as inputs
   pinMode(A3,INPUT);
@@ -250,7 +251,7 @@ void setup(){
   temperature_sensor_config_t temp_sensor_config = TEMPERATURE_SENSOR_CONFIG_DEFAULT(-10, 80);
   ESP_ERROR_CHECK(temperature_sensor_install(&temp_sensor_config, &temp_sensor));
   ESP_ERROR_CHECK(temperature_sensor_enable(temp_sensor));
-
+  delay(5000);
   StartComms();
 }
 
@@ -290,7 +291,7 @@ void loop(){
   unsigned long previousMillis = millis();
   unsigned long currentMillis = previousMillis;
 
-  while (deviceConnected || currentMillis - previousMillis > 60000) {
+  while (deviceConnected || currentMillis - previousMillis < 60000) {
     currentMillis = millis();
 
     if (deviceConnected && !oldDeviceConnected) {

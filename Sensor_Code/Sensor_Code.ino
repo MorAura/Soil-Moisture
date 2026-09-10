@@ -3,6 +3,8 @@
 #include <driver/temperature_sensor.h>
 temperature_sensor_handle_t temp_sensor = NULL;
 
+#include "esp_sleep.h"
+const uint64_t SLEEP_DURATION_SEC = 60;
 
 /*
 Connections:
@@ -242,7 +244,8 @@ void setup(){
   // Setup adc pins for moisture and light level as inputs
   pinMode(A3,INPUT);
   pinMode(A2,INPUT);
-
+  // Setup onboard led as output
+  pinMode(LED_BUILTIN,OUTPUT);
   // Setup internal temperature sensor
   temperature_sensor_config_t temp_sensor_config = TEMPERATURE_SENSOR_CONFIG_DEFAULT(-10, 80);
   ESP_ERROR_CHECK(temperature_sensor_install(&temp_sensor_config, &temp_sensor));
@@ -251,32 +254,51 @@ void setup(){
   StartComms();
 }
 
-// testing 
-unsigned long previousDataMillis = 0;
+void enterLightSleep() {
+    Serial.println("Timeout reached. Stopping BLE...");
+    
+    if (pServer != NULL) {
+        BLEDevice::getAdvertising()->stop();
+        // Disconnect any active client before sleeping to prevent hanging
+        if (deviceConnected) {
+            // 0 is the default client ID
+            pServer->disconnect(0); 
+        }
+    }
+    
+    // Convert seconds to microseconds for the timer
+    esp_sleep_enable_timer_wakeup(SLEEP_DURATION_SEC * 1000000ULL);
+    
+    Serial.println("Entering Light Sleep for 1 minute...");
+    Serial.flush(); // Ensure all serial data prints before the CPU stops
+    
+    digitalWrite(LED_BUILTIN,LOW);
+    esp_light_sleep_start();
+    digitalWrite(LED_BUILTIN,HIGH);
+    Serial.println("Woke up from Light Sleep!");
+    
+    if (pServer != NULL) {
+        BLEDevice::getAdvertising()->start();
+        Serial.println("BLE Advertising restarted.");
+    }
+}
+
 
 void loop(){
-  // for testing
 
-  unsigned long currentMillis = millis();
+  readData();
+  unsigned long previousMillis = millis();
+  unsigned long currentMillis = previousMillis;
 
-  // 1. THE NON-BLOCKING TIMER
-  if (currentMillis - previousDataMillis >= 1000) {
-    // Save the last time you read the data
-    previousDataMillis = currentMillis;
+  while (deviceConnected || currentMillis - previousMillis > 60000) {
+    currentMillis = millis();
 
-    // Trigger the sensor reading
-    readData();
-  }
-
-  if (deviceConnected && !oldDeviceConnected) {
-      
-      
-      delay(1000); 
-
+    if (deviceConnected && !oldDeviceConnected) {
+      delay(1000);
       Serial.println("Sending Moisture Data...");
       pMoistCharacteristic->setValue(moistureHist, sizeof(moistureHist));
       pMoistCharacteristic->notify();
-      delay(50); // Small pause to prevent radio buffer overflow
+      delay(50);  
 
       Serial.println("Sending Temperature Data...");
       pTempCharacteristic->setValue(tempHist, sizeof(tempHist));
@@ -288,14 +310,18 @@ void loop(){
       pLightCharacteristic->notify();
 
       oldDeviceConnected = deviceConnected;
-  }
-  
-  // 2. If a device just disconnected, restart advertising
-  if (!deviceConnected && oldDeviceConnected) {
-      delay(500); // Give the radio a moment to reset
-      pServer->startAdvertising(); 
+    }
+
+    if (!deviceConnected && oldDeviceConnected) {
+      delay(500);  
+      pServer->startAdvertising();
       Serial.println("Client disconnected. Restarting advertising...");
       oldDeviceConnected = deviceConnected;
+    }
+    delay(10);
   }
+
+  enterLightSleep();
+
 }
 

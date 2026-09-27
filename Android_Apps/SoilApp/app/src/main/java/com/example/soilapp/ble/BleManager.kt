@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.*
+import kotlin.time.Duration.Companion.milliseconds
 
 private const val TAG = "BleManager"
 
@@ -52,6 +53,7 @@ class BleManager(private val context: Context) {
             if (device !in _foundDevices.value) {
                 _foundDevices.update { it + device }
             }
+            // does this delete devices that were found?
         }
 
         override fun onScanFailed(errorCode: Int) {
@@ -118,6 +120,14 @@ class BleManager(private val context: Context) {
                 handleCharacteristicUpdate(characteristic, value)
             }
         }
+
+        @Deprecated("Deprecated in Java")
+        override fun onCharacteristicWrite(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                Log.d(TAG, "Characteristic write success: ${characteristic.uuid}")
+                handleCharacteristicUpdate(characteristic)
+            }
+        }
     }
 
     fun startScan() {
@@ -179,7 +189,7 @@ class BleManager(private val context: Context) {
                         it.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
                         val success = gatt.writeDescriptor(it)
                         Log.d(TAG, "Write descriptor for notification $uuid success: $success")
-                        delay(300) // Properly queued and delayed to prevent concurrent write failures
+                        delay(300.milliseconds) // Properly queued and delayed to prevent concurrent write failures
                     }
                 }
             }
@@ -194,7 +204,7 @@ class BleManager(private val context: Context) {
                 service.getCharacteristic(uuid)?.let { characteristic ->
                     val success = gatt.readCharacteristic(characteristic)
                     Log.d(TAG, "Read characteristic $uuid success: $success")
-                    delay(250) // Properly queued and delayed between reads
+                    delay(250.milliseconds) // Properly queued and delayed between reads
                 }
             }
         }
@@ -234,13 +244,26 @@ class BleManager(private val context: Context) {
     }
 
     fun writeThreshold(uuid: UUID, value: Int) {
+        updateLocalThreshold(uuid, value)
         scope.launch(Dispatchers.IO) {
             val gatt = bluetoothGatt ?: return@launch
             val service = gatt.getService(SoilSenseConstants.SERVICE_UUID) ?: return@launch
             val characteristic = service.getCharacteristic(uuid) ?: return@launch
             
+            @Suppress("DEPRECATION")
             characteristic.value = byteArrayOf(value.toByte())
+            @Suppress("DEPRECATION")
             gatt.writeCharacteristic(characteristic)
+        }
+    }
+
+    // update locally stored threshold values
+    private fun updateLocalThreshold(uuid: UUID, value: Int) {
+        when (uuid) {
+            SoilSenseConstants.MOIST_MAX_CHAR_UUID -> _thresholds.update { it.copy(moistureMax = value) }
+            SoilSenseConstants.MOIST_MIN_CHAR_UUID -> _thresholds.update { it.copy(moistureMin = value) }
+            SoilSenseConstants.TEMP_MAX_CHAR_UUID -> _thresholds.update { it.copy(temperatureMax = value) }
+            SoilSenseConstants.TEMP_MIN_CHAR_UUID -> _thresholds.update { it.copy(temperatureMin = value) }
         }
     }
 }

@@ -249,6 +249,7 @@ void StartComms(){
 void setup(){
 
   Serial.begin(115200);
+  Serial.println("Hello World");
   // Setup adc pins for moisture and light level as inputs
   pinMode(A3,INPUT);
   pinMode(A2,INPUT);
@@ -262,6 +263,10 @@ void setup(){
   ESP_ERROR_CHECK(temperature_sensor_install(&temp_sensor_config, &temp_sensor));
   ESP_ERROR_CHECK(temperature_sensor_enable(temp_sensor));
   delay(5000);
+
+  // Setup the name
+  
+
   Serial.println("Starting Sensor");
   StartComms();
 }
@@ -279,13 +284,15 @@ void enterLightSleep() {
     }
     
     // Convert seconds to microseconds for the timer
-    esp_sleep_enable_timer_wakeup(SLEEP_DURATION_SEC * 1000000ULL);
+    // esp_sleep_enable_timer_wakeup(SLEEP_DURATION_SEC * 1000000ULL);
     
     Serial.println("Entering Light Sleep for 1 minute...");
     Serial.flush(); // Ensure all serial data prints before the CPU stops
     
+    delay(1000);
+
     //digitalWrite(LedPin,LOW);
-    esp_light_sleep_start();
+    // esp_light_sleep_start();
     //digitalWrite(LedPin,HIGH);
     Serial.println("Woke up from Light Sleep!");
     
@@ -299,13 +306,16 @@ void enterLightSleep() {
 void loop(){
 
   readData();
-  unsigned long previousMillis = millis();
-  unsigned long currentMillis = previousMillis;
+  unsigned long currentMillis = millis();
+  unsigned long previousMillis = currentMillis;
 
   while (deviceConnected || currentMillis - previousMillis < 60000) {
     currentMillis = millis();
 
     if (deviceConnected) {
+      previousMillis = currentMillis; // keep resetting the 60s timer while the device is connected
+      // so when it disconnects, it's a 60s timer
+      oldDeviceConnected = 1;
       // test
       readData(); 
 
@@ -325,7 +335,7 @@ void loop(){
       pLightCharacteristic->setValue(lightHist, sizeof(lightHist));
       pLightCharacteristic->notify();
 
-      oldDeviceConnected = deviceConnected;
+      // oldDeviceConnected = deviceConnected;
     }
 
     if (!deviceConnected && oldDeviceConnected) {
@@ -333,7 +343,7 @@ void loop(){
       pServer->startAdvertising();
       Serial.println("Client disconnected. Restarting advertising...");
       oldDeviceConnected = deviceConnected;
-    }
+    } 
     delay(10);
   }
 

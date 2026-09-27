@@ -98,15 +98,16 @@ fun SoilSenseApp(viewModel: SoilSenseViewModel = viewModel()) {
     if (allPermissionsGranted) {
         val backStack = rememberNavBackStack(SoilSenseRoute.DeviceScan)
 
-        // Automatically navigate to Dashboard when connected or back to DeviceScan when disconnected
+        // Automatically navigate to Dashboard when connected, but stay on screen on disconnect until manual back
         LaunchedEffect(connectionState) {
             if (connectionState is ConnectionState.Connected && backStack.lastOrNull() is SoilSenseRoute.DeviceScan) {
                 backStack.add(SoilSenseRoute.Dashboard)
-            } else if ((connectionState is ConnectionState.Disconnected || connectionState is ConnectionState.Error) && backStack.size > 1) {
-                while (backStack.size > 1) {
-                    backStack.removeAt(backStack.size - 1)
-                }
             }
+//            else if ((connectionState is ConnectionState.Disconnected || connectionState is ConnectionState.Error) && backStack.size > 1) {
+//                while (backStack.size > 1) {
+//                    backStack.removeAt(backStack.size - 1)
+//                }
+//            }
         }
 
         NavDisplay(
@@ -126,7 +127,8 @@ fun SoilSenseApp(viewModel: SoilSenseViewModel = viewModel()) {
                         DashboardScreen(
                             viewModel = viewModel,
                             onNavigateToHistory = { backStack.add(SoilSenseRoute.History) },
-                            onNavigateToThresholds = { backStack.add(SoilSenseRoute.Thresholds) }
+                            onNavigateToThresholds = { backStack.add(SoilSenseRoute.Thresholds) },
+                            onNavigateBack = { backStack.removeAt(backStack.size - 1) }
                         )
                     }
                     is SoilSenseRoute.History -> NavEntry(key) {

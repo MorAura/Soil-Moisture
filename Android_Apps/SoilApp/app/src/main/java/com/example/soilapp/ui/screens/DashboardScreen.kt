@@ -26,7 +26,8 @@ import com.example.soilapp.ui.theme.SoilAppTheme
 fun DashboardScreen(
     viewModel: SoilSenseViewModel,
     onNavigateToHistory: () -> Unit,
-    onNavigateToThresholds: () -> Unit
+    onNavigateToThresholds: () -> Unit,
+    onNavigateBack: () -> Unit
 ) {
     val metrics by viewModel.metrics.collectAsState()
     val thresholds by viewModel.thresholds.collectAsState()
@@ -34,13 +35,16 @@ fun DashboardScreen(
 
     BackHandler {
         viewModel.disconnect()
+        onNavigateBack()
     }
 
     DashboardContent(
         metrics = metrics,
         thresholds = thresholds,
         connectionState = connectionState,
-        onDisconnect = { viewModel.disconnect() },
+        onDisconnect = { 
+            viewModel.disconnect()
+        },
         onNavigateToHistory = onNavigateToHistory,
         onNavigateToThresholds = onNavigateToThresholds
     )

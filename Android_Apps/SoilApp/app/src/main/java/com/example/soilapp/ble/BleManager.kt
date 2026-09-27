@@ -74,6 +74,11 @@ class BleManager(private val context: Context) {
                     BluetoothProfile.STATE_DISCONNECTED -> {
                         Log.d(TAG, "Disconnected from GATT server")
                         _connectionState.value = ConnectionState.Disconnected
+                        try {
+                            gatt.close()
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error closing GATT in callback", e)
+                        }
                         bluetoothGatt = null
                         hasInitializedGatt = false
                     }
@@ -81,7 +86,11 @@ class BleManager(private val context: Context) {
             } else {
                 Log.e(TAG, "GATT error: $status")
                 _connectionState.value = ConnectionState.Error("GATT error: $status")
-                gatt.close()
+                try {
+                    gatt.close()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error closing GATT in error callback", e)
+                }
                 bluetoothGatt = null
                 hasInitializedGatt = false
             }
@@ -186,9 +195,22 @@ class BleManager(private val context: Context) {
     fun disconnect() {
         scope.launch(Dispatchers.IO) {
             hasInitializedGatt = false
-            bluetoothGatt?.disconnect()
-            bluetoothGatt?.close()
+            _connectionState.value = ConnectionState.Disconnected
+            val gatt = bluetoothGatt
             bluetoothGatt = null
+            if (gatt != null) {
+                try {
+                    gatt.disconnect()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error during disconnect", e)
+                }
+                delay(200.milliseconds)
+                try {
+                    gatt.close()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error closing gatt", e)
+                }
+            }
         }
     }
 

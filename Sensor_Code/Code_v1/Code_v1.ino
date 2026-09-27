@@ -17,7 +17,7 @@ Connections:
 */
 
 // Determined experimentally
-#define MoistureMax 3100
+#define MoistureMax 3130
 #define MoistureMin 1270
 
 // To store old data

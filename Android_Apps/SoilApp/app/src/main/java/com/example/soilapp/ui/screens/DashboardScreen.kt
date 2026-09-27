@@ -1,5 +1,6 @@
 package com.example.soilapp.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -31,12 +32,36 @@ fun DashboardScreen(
     val thresholds by viewModel.thresholds.collectAsState()
     val connectionState by viewModel.connectionState.collectAsState()
 
+    BackHandler {
+        viewModel.disconnect()
+    }
+
+    DashboardContent(
+        metrics = metrics,
+        thresholds = thresholds,
+        connectionState = connectionState,
+        onDisconnect = { viewModel.disconnect() },
+        onNavigateToHistory = onNavigateToHistory,
+        onNavigateToThresholds = onNavigateToThresholds
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DashboardContent(
+    metrics: SoilSenseMetrics,
+    thresholds: SoilSenseThresholds,
+    connectionState: ConnectionState,
+    onDisconnect: () -> Unit,
+    onNavigateToHistory: () -> Unit,
+    onNavigateToThresholds: () -> Unit
+) {
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("SoilSense Dashboard") },
                 actions = {
-                    TextButton(onClick = { viewModel.disconnect() }) {
+                    TextButton(onClick = onDisconnect) {
                         Text("Disconnect", color = MaterialTheme.colorScheme.error)
                     }
                 }
@@ -225,32 +250,22 @@ fun MetricCard(
 @Composable
 fun DashboardScreenPreview() {
     SoilAppTheme {
-        Scaffold(
-            topBar = {
-                TopAppBar(title = { Text("SoilSense Dashboard") })
-            }
-        ) { padding ->
-            Column(
-                modifier = Modifier
-                    .padding(padding)
-                    .fillMaxSize()
-                    .padding(16.dp)
-            ) {
-                ConnectionStatusCard(ConnectionState.Connected)
-                Spacer(modifier = Modifier.height(24.dp))
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = 150.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    item {
-                        MetricCard("Moisture", "45", "%", Icons.Rounded.WaterDrop, false)
-                    }
-                    item {
-                        MetricCard("Temperature", "32", "°C", Icons.Rounded.Thermostat, true)
-                    }
-                }
-            }
-        }
+        DashboardContent(
+            metrics = SoilSenseMetrics(
+                moisture = listOf(45),
+                temperature = listOf(32),
+                light = listOf(450)
+            ),
+            thresholds = SoilSenseThresholds(
+                moistureMin = 30,
+                moistureMax = 70,
+                temperatureMin = 15,
+                temperatureMax = 30
+            ),
+            connectionState = ConnectionState.Connected,
+            onDisconnect = {},
+            onNavigateToHistory = {},
+            onNavigateToThresholds = {}
+        )
     }
 }

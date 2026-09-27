@@ -34,6 +34,7 @@ class BleManager(private val context: Context) {
 
     private var bluetoothGatt: BluetoothGatt? = null
     private val scope = CoroutineScope(Dispatchers.Main)
+    private var hasInitializedGatt = false
 
     private val _connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected)
     val connectionState = _connectionState.asStateFlow()
@@ -53,7 +54,6 @@ class BleManager(private val context: Context) {
             if (device !in _foundDevices.value) {
                 _foundDevices.update { it + device }
             }
-            // does this delete devices that were found?
         }
 
         override fun onScanFailed(errorCode: Int) {
@@ -75,6 +75,7 @@ class BleManager(private val context: Context) {
                         Log.d(TAG, "Disconnected from GATT server")
                         _connectionState.value = ConnectionState.Disconnected
                         bluetoothGatt = null
+                        hasInitializedGatt = false
                     }
                 }
             } else {
@@ -82,21 +83,34 @@ class BleManager(private val context: Context) {
                 _connectionState.value = ConnectionState.Error("GATT error: $status")
                 gatt.close()
                 bluetoothGatt = null
+                hasInitializedGatt = false
             }
         }
 
         override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 Log.d(TAG, "Services discovered")
-                gatt.requestMtu(SoilSenseConstants.REQUESTED_MTU)
+                hasInitializedGatt = false
+                val mtuRequested = gatt.requestMtu(SoilSenseConstants.REQUESTED_MTU)
+                Log.d(TAG, "requestMtu returned $mtuRequested")
+                if (!mtuRequested) {
+                    enableNotificationsAndReadThresholds(gatt)
+                } else {
+                    // Fallback in case onMtuChanged is not invoked by system
+                    scope.launch {
+                        delay(1000.milliseconds)
+                        if (!hasInitializedGatt) {
+                            Log.d(TAG, "MTU change callback timed out, initializing notifications now")
+                            enableNotificationsAndReadThresholds(gatt)
+                        }
+                    }
+                }
             }
         }
 
         override fun onMtuChanged(gatt: BluetoothGatt, mtu: Int, status: Int) {
-            if (status == BluetoothGatt.GATT_SUCCESS) {
-                Log.d(TAG, "MTU changed to $mtu")
-                enableNotificationsAndReadThresholds(gatt)
-            }
+            Log.d(TAG, "onMtuChanged: mtu=$mtu, status=$status")
+            enableNotificationsAndReadThresholds(gatt)
         }
 
         @Deprecated("Deprecated in Java")
@@ -160,6 +174,9 @@ class BleManager(private val context: Context) {
 
     fun connect(device: BluetoothDevice) {
         scope.launch(Dispatchers.IO) {
+            hasInitializedGatt = false
+            _metrics.value = SoilSenseMetrics()
+            _thresholds.value = SoilSenseThresholds()
             bluetoothAdapter?.bluetoothLeScanner?.stopScan(scanCallback)
             _connectionState.value = ConnectionState.Connecting
             bluetoothGatt = device.connectGatt(context, false, gattCallback)
@@ -168,12 +185,21 @@ class BleManager(private val context: Context) {
 
     fun disconnect() {
         scope.launch(Dispatchers.IO) {
+            hasInitializedGatt = false
             bluetoothGatt?.disconnect()
+            bluetoothGatt?.close()
+            bluetoothGatt = null
         }
     }
 
     private fun enableNotificationsAndReadThresholds(gatt: BluetoothGatt) {
-        val service = gatt.getService(SoilSenseConstants.SERVICE_UUID) ?: return
+        if (hasInitializedGatt) return
+        hasInitializedGatt = true
+
+        val service = gatt.getService(SoilSenseConstants.SERVICE_UUID) ?: run {
+            Log.e(TAG, "SoilSense service not found!")
+            return
+        }
         
         scope.launch {
             val notificationChars = listOf(
@@ -181,19 +207,29 @@ class BleManager(private val context: Context) {
                 SoilSenseConstants.TEMP_CHAR_UUID,
                 SoilSenseConstants.LIGHT_CHAR_UUID
             )
+            // 1. Enable notifications
             for (uuid in notificationChars) {
                 service.getCharacteristic(uuid)?.let { characteristic ->
                     gatt.setCharacteristicNotification(characteristic, true)
                     val descriptor = characteristic.getDescriptor(UUID.fromString("00002902-0000-1000-8000-00805f9b34fb"))
                     descriptor?.let {
-                        it.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-                        val success = gatt.writeDescriptor(it)
-                        Log.d(TAG, "Write descriptor for notification $uuid success: $success")
-                        delay(300.milliseconds) // Properly queued and delayed to prevent concurrent write failures
+                        gatt.writeDescriptor(it, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
+                        Log.d(TAG, "Write descriptor for notification $uuid")
+                        delay(300.milliseconds)
                     }
                 }
             }
 
+            // 2. Read initial live metric values directly
+            for (uuid in notificationChars) {
+                service.getCharacteristic(uuid)?.let { characteristic ->
+                    val success = gatt.readCharacteristic(characteristic)
+                    Log.d(TAG, "Read metric characteristic $uuid success: $success")
+                    delay(250.milliseconds)
+                }
+            }
+
+            // 3. Read threshold values
             val thresholdChars = listOf(
                 SoilSenseConstants.MOIST_MAX_CHAR_UUID,
                 SoilSenseConstants.MOIST_MIN_CHAR_UUID,
@@ -203,26 +239,36 @@ class BleManager(private val context: Context) {
             for (uuid in thresholdChars) {
                 service.getCharacteristic(uuid)?.let { characteristic ->
                     val success = gatt.readCharacteristic(characteristic)
-                    Log.d(TAG, "Read characteristic $uuid success: $success")
-                    delay(250.milliseconds) // Properly queued and delayed between reads
+                    Log.d(TAG, "Read threshold characteristic $uuid success: $success")
+                    delay(250.milliseconds)
                 }
             }
         }
     }
 
     private fun handleCharacteristicUpdate(characteristic: BluetoothGattCharacteristic, value: ByteArray? = null) {
+        @Suppress("DEPRECATION")
         val data = value ?: characteristic.value ?: return
         Log.d(TAG, "Received characteristic update: ${characteristic.uuid}: ${data.contentToString()}")
 
+        val parsedList = parseByteArray(data)
+        if (parsedList.isEmpty()) return
+
         when (characteristic.uuid) {
             SoilSenseConstants.MOIST_CHAR_UUID -> {
-                _metrics.update { it.copy(moisture = parseByteArray(data)) }
+                _metrics.update { current ->
+                    current.copy(moisture = if (current.moisture.isEmpty()) parsedList else current.moisture + parsedList)
+                }
             }
             SoilSenseConstants.TEMP_CHAR_UUID -> {
-                _metrics.update { it.copy(temperature = parseByteArray(data)) }
+                _metrics.update { current ->
+                    current.copy(temperature = if (current.temperature.isEmpty()) parsedList else current.temperature + parsedList)
+                }
             }
             SoilSenseConstants.LIGHT_CHAR_UUID -> {
-                _metrics.update { it.copy(light = parseByteArray(data)) }
+                _metrics.update { current ->
+                    current.copy(light = if (current.light.isEmpty()) parsedList else current.light + parsedList)
+                }
             }
             SoilSenseConstants.MOIST_MAX_CHAR_UUID -> {
                 _thresholds.update { it.copy(moistureMax = data[0].toInt() and 0xFF) }

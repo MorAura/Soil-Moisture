@@ -1,6 +1,21 @@
 #include <Arduino.h>
 #include "FS.h"
 #include <LittleFS.h>
+#include <WiFi.h>
+#include "time.h"
+#include "esp_sntp.h"
+
+const char *ssid = "iPhone";
+const char *password = "iphone123";
+
+const char *ntpServer1 = "pool.ntp.org";
+const char *ntpServer2 = "time.nist.gov";
+const long gmtOffset_sec = 19800;
+const int daylightOffset_sec = 0;
+
+int SyncHour = 0;
+
+bool newTimeSynced = false;
 
 #define FORMAT_LITTLEFS_IF_FAILED true
 
@@ -14,7 +29,8 @@ temperature_sensor_handle_t temp_sensor = NULL;
 #include "esp_sleep.h"
 #define uS_TO_S_FACTOR 1000000ULL
 
-const uint64_t SLEEP_DURATION_SEC = 3600;
+// typically 3600
+const uint64_t SLEEP_DURATION_SEC = 10;
 
 /*
 Connections:
@@ -28,7 +44,8 @@ Connections:
 #define MoistureMax 3130
 #define MoistureMin 1270
 
-const char* filePath = "/data.csv";
+const char* dataFilePath = "/data.csv";
+
 
 struct SoilData {
   float tempVal;
@@ -102,6 +119,53 @@ void writeFile(fs::FS &fs, const char *path, const char *message) {
   file.close();
 }
 
+void appendFile(fs::FS &fs, const char *path, const char *message) {
+  Serial.printf("Appending to file: %s\r\n", path);
+
+  File file = fs.open(path, FILE_APPEND);
+  if (!file) {
+    Serial.println("- failed to open file for appending");
+    return;
+  }
+  if (file.print(message)) {
+    Serial.println("- message appended");
+  } else {
+    Serial.println("- append failed");
+  }
+  file.close();
+}
+
+void timeavailable(struct timeval *t) {
+  // Callback function (gets called when time adjusts via NTP)
+  Serial.println("Got time adjustment from NTP!");
+  newTimeSynced = true;
+}
+
+void SyncTime(){
+  
+  Serial.printf("Connecting to %s ", ssid);
+  WiFi.begin(ssid, password);
+  esp_sntp_servermode_dhcp(1);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println(" CONNECTED");
+
+  sntp_set_time_sync_notification_cb(timeavailable);
+  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer1, ntpServer2);
+
+  delay(1000);
+
+  newTimeSynced = false;
+  while(!newTimeSynced){
+    delay(100); // wait for time sync
+  }
+
+  // Code for connecting to online sever and syncing server data.
+
+}
+
 void setup(){
 
   Serial.begin(115200);
@@ -109,6 +173,7 @@ void setup(){
     ;  // wait for serial port to connect. 
   }
   Serial.println("Starting up");
+  
 
   // Setup adc pins for moisture and light level as inputs
   pinMode(A3,INPUT);
@@ -126,18 +191,49 @@ void setup(){
   ESP_ERROR_CHECK(temperature_sensor_enable(temp_sensor));
 
   // Read data from sensors
+  Serial.println("Reading sensor data");
   struct SoilData currentData = ReadData();
 
   if (!LittleFS.begin(FORMAT_LITTLEFS_IF_FAILED)) {
     Serial.println("LittleFS Mount Failed");
     return;
   }
-  if (LittleFS.exists(filePath)) {
+
+  if (LittleFS.exists(dataFilePath)) {
     Serial.println("File exists! Opening for reading...");
   } else {
     Serial.println("File does not exist! Creating new file...");
+    writeFile(LittleFS, dataFilePath, "YYYY,MM,DD,HH,Moisture,Light,Temperature\r\n");
   }
 
+  struct tm timeinfo;
+
+  if (!getLocalTime(&timeinfo)) {
+    Serial.println("No time available (yet)");
+    SyncTime();
+  }
+
+  if (!getLocalTime(&timeinfo)) {
+    Serial.println("No time available (yet)");
+    SyncTime();
+  }
+
+
+  int year   = timeinfo.tm_year + 1900;
+  int month  = timeinfo.tm_mon + 1;
+  int day    = timeinfo.tm_mday;
+  int hour   = timeinfo.tm_hour;
+
+  char message[128];
+
+  snprintf(message, sizeof(message), "%04d,%02d,%02d,%02d,%d,%d,%.2f\r\n",
+           year, month, day, hour,
+           currentData.moistureLevel,
+           currentData.lightLevel,
+           currentData.tempVal);
+
+  appendFile(LittleFS, dataFilePath, message);
+  readFile(LittleFS, dataFilePath);
 
   esp_sleep_enable_timer_wakeup(SLEEP_DURATION_SEC * uS_TO_S_FACTOR);
   Serial.println("Going to sleep now");

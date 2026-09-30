@@ -13,8 +13,6 @@ const char *ntpServer2 = "time.nist.gov";
 const long gmtOffset_sec = 19800;
 const int daylightOffset_sec = 0;
 
-int SyncHour = 0;
-
 bool newTimeSynced = false;
 
 #define FORMAT_LITTLEFS_IF_FAILED true
@@ -30,7 +28,12 @@ temperature_sensor_handle_t temp_sensor = NULL;
 #define uS_TO_S_FACTOR 1000000ULL
 
 // typically 3600
-const uint64_t SLEEP_DURATION_SEC = 10;
+const uint64_t SLEEP_DURATION_SEC = 60;
+
+
+// sync every 5 min for testing
+const int SyncEverySecs = 300;
+RTC_DATA_ATTR int LastSyncTime = 0;
 
 /*
 Connections:
@@ -44,7 +47,7 @@ Connections:
 #define MoistureMax 3130
 #define MoistureMin 1270
 
-const char* dataFilePath = "/data.csv";
+const char* dataFilePath = "/data.json";
 
 
 struct SoilData {
@@ -137,6 +140,7 @@ void appendFile(fs::FS &fs, const char *path, const char *message) {
 
 void timeavailable(struct timeval *t) {
   // Callback function (gets called when time adjusts via NTP)
+  Serial.println(" Time Set");
   Serial.println("Got time adjustment from NTP!");
   newTimeSynced = true;
 }
@@ -154,16 +158,19 @@ void SyncTime(){
 
   sntp_set_time_sync_notification_cb(timeavailable);
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer1, ntpServer2);
-
-  delay(1000);
+  Serial.print("Waiting for time sync ");
 
   newTimeSynced = false;
   while(!newTimeSynced){
-    delay(100); // wait for time sync
+    Serial.print(".");
+    delay(1000); // wait for time sync
   }
 
-  // Code for connecting to online sever and syncing server data.
+}
 
+void SyncData(){
+  // Code for connecting to online sever and syncing server data.
+  Serial.println("Connecting to the server");
 }
 
 void setup(){
@@ -203,7 +210,7 @@ void setup(){
     Serial.println("File exists! Opening for reading...");
   } else {
     Serial.println("File does not exist! Creating new file...");
-    writeFile(LittleFS, dataFilePath, "YYYY,MM,DD,HH,Moisture,Light,Temperature\r\n");
+    writeFile(LittleFS, dataFilePath, "{\r\n");
   }
 
   struct tm timeinfo;
@@ -218,7 +225,7 @@ void setup(){
     SyncTime();
   }
 
-
+  time_t epochTime = mktime(&timeinfo);
   int year   = timeinfo.tm_year + 1900;
   int month  = timeinfo.tm_mon + 1;
   int day    = timeinfo.tm_mday;
@@ -226,14 +233,27 @@ void setup(){
 
   char message[128];
 
-  snprintf(message, sizeof(message), "%04d,%02d,%02d,%02d,%d,%d,%.2f\r\n",
-           year, month, day, hour,
-           currentData.moistureLevel,
-           currentData.lightLevel,
-           currentData.tempVal);
+  snprintf(message, sizeof(message), 
+         "\"%lu\":{\"moisture\":%d,\"light\":%d,\"temp\":%.2f},\r\n",
+         (unsigned long)epochTime,
+         currentData.moistureLevel,
+         currentData.lightLevel,
+         currentData.tempVal);
 
   appendFile(LittleFS, dataFilePath, message);
   readFile(LittleFS, dataFilePath);
+
+
+  Serial.println(epochTime/SyncEverySecs);
+  Serial.println(LastSyncTime/SyncEverySecs);
+
+  if(epochTime/SyncEverySecs != LastSyncTime/SyncEverySecs) {
+    LastSyncTime = epochTime;
+    SyncTime();
+    SyncData();
+    Serial.println("Clear data file");
+    writeFile(LittleFS, dataFilePath, "{\r\n");
+  }
 
   esp_sleep_enable_timer_wakeup(SLEEP_DURATION_SEC * uS_TO_S_FACTOR);
   Serial.println("Going to sleep now");

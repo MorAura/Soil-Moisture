@@ -1,16 +1,21 @@
 package com.example.soilapp.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.BluetoothSearching
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -45,6 +50,10 @@ fun DashboardScreen(
         onDisconnect = { 
             viewModel.disconnect()
         },
+        onNavigateBack = {
+            viewModel.disconnect()
+            onNavigateBack()
+        },
         onNavigateToHistory = onNavigateToHistory,
         onNavigateToThresholds = onNavigateToThresholds
     )
@@ -58,101 +67,147 @@ fun DashboardContent(
     connectionState: ConnectionState,
     onDisconnect: () -> Unit,
     onNavigateToHistory: () -> Unit,
-    onNavigateToThresholds: () -> Unit
+    onNavigateToThresholds: () -> Unit,
+    onNavigateBack: () -> Unit,
 ) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("SoilSense Dashboard") },
-                actions = {
-                    TextButton(onClick = onDisconnect) {
-                        Text("Disconnect", color = MaterialTheme.colorScheme.error)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.primaryContainer,
+                        MaterialTheme.colorScheme.background, // Fades into your base theme
+                        MaterialTheme.colorScheme.background, // Top tint
+                    )
+                )
+            )
+    ) {
+
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = "Dashboard",
+//                    fontWeight = FontWeight.Bold,
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back"
+                            )
+                        }
+                    },
+                    actions = {
+                        TextButton(onClick = onDisconnect) {
+                            Text("Disconnect", color = MaterialTheme.colorScheme.error)
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        scrolledContainerColor = Color.Transparent,
+                    )
+                )
+            }
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .padding(padding)
+                    .fillMaxSize()
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = "SoilSense Plant",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                ConnectionStatusCard(connectionState)
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Text(
+                    text = "Live Metrics",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 150.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    item {
+                        val lastMoisture = metrics.moisture.lastOrNull()
+                        val isOutOfRange =
+                            lastMoisture != null && (lastMoisture < thresholds.moistureMin || lastMoisture > thresholds.moistureMax)
+                        MetricCard(
+                            title = "Moisture",
+                            value = lastMoisture?.toString() ?: "--",
+                            unit = "%",
+                            icon = Icons.Rounded.WaterDrop,
+                            isAlert = isOutOfRange
+                        )
+                    }
+                    item {
+                        val lastTemp = metrics.temperature.lastOrNull()
+                        val isOutOfRange =
+                            lastTemp != null && (lastTemp < thresholds.temperatureMin || lastTemp > thresholds.temperatureMax)
+                        MetricCard(
+                            title = "Temperature",
+                            value = lastTemp?.toString() ?: "--",
+                            unit = "°C",
+                            icon = Icons.Rounded.Thermostat,
+                            isAlert = isOutOfRange
+                        )
+                    }
+                    item {
+                        MetricCard(
+                            title = "Light Level",
+                            value = metrics.light.lastOrNull()?.toString() ?: "--",
+                            unit = "lux",
+                            icon = Icons.Rounded.LightMode,
+                            isAlert = false // Light doesn't have thresholds
+                        )
                     }
                 }
-            )
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-                .padding(16.dp)
-        ) {
-            ConnectionStatusCard(connectionState)
 
-            Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-            Text(
-                text = "Live Metrics",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 150.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.weight(1f)
-            ) {
-                item {
-                    val lastMoisture = metrics.moisture.lastOrNull()
-                    val isOutOfRange = lastMoisture != null && (lastMoisture < thresholds.moistureMin || lastMoisture > thresholds.moistureMax)
-                    MetricCard(
-                        title = "Moisture",
-                        value = lastMoisture?.toString() ?: "--",
-                        unit = "%",
-                        icon = Icons.Rounded.WaterDrop,
-                        isAlert = isOutOfRange
-                    )
-                }
-                item {
-                    val lastTemp = metrics.temperature.lastOrNull()
-                    val isOutOfRange = lastTemp != null && (lastTemp < thresholds.temperatureMin || lastTemp > thresholds.temperatureMax)
-                    MetricCard(
-                        title = "Temperature",
-                        value = lastTemp?.toString() ?: "--",
-                        unit = "°C",
-                        icon = Icons.Rounded.Thermostat,
-                        isAlert = isOutOfRange
-                    )
-                }
-                item {
-                    MetricCard(
-                        title = "Light Level",
-                        value = metrics.light.lastOrNull()?.toString() ?: "--",
-                        unit = "lux",
-                        icon = Icons.Rounded.LightMode,
-                        isAlert = false // Light doesn't have thresholds
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Button(
-                    onClick = onNavigateToHistory,
-                    modifier = Modifier.weight(1f),
-                    shape = MaterialTheme.shapes.medium
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Icon(Icons.Rounded.History, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("History")
-                }
-                OutlinedButton(
-                    onClick = onNavigateToThresholds,
-                    modifier = Modifier.weight(1f),
-                    shape = MaterialTheme.shapes.medium
-                ) {
-                    Icon(Icons.Rounded.Settings, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Settings")
+                    Button(
+                        onClick = onNavigateToHistory,
+                        modifier = Modifier.weight(1f),
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Icon(Icons.Rounded.History, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("History")
+                    }
+                    OutlinedButton(
+                        onClick = onNavigateToThresholds,
+                        modifier = Modifier.weight(1f),
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Icon(Icons.Rounded.Settings, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Settings")
+                    }
                 }
             }
         }
@@ -269,7 +324,8 @@ fun DashboardScreenPreview() {
             connectionState = ConnectionState.Connected,
             onDisconnect = {},
             onNavigateToHistory = {},
-            onNavigateToThresholds = {}
+            onNavigateToThresholds = {},
+            onNavigateBack = {},
         )
     }
 }

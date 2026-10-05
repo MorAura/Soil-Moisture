@@ -6,13 +6,13 @@ plugins {
 }
 
 android {
-    namespace = "com.example.soilapp"
+    namespace = "com.moraura.soilapp"
     compileSdk {
         version = release(37)
     }
 
     defaultConfig {
-        applicationId = "com.example.soilapp"
+        applicationId = "com.moraura.soilapp"
         minSdk = 33
         targetSdk = 37
         versionCode = 1

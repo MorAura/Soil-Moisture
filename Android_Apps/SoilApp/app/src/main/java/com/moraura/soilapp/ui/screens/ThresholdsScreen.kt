@@ -1,4 +1,4 @@
-package com.example.soilapp.ui.screens
+package com.moraura.soilapp.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -15,8 +15,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.soilapp.ui.SoilSenseViewModel
-import com.example.soilapp.ui.theme.SoilAppTheme
+import com.moraura.soilapp.ui.SoilSenseViewModel
+import com.moraura.soilapp.ui.theme.SoilAppTheme
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)

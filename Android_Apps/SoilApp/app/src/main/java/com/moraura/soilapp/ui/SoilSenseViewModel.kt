@@ -1,10 +1,10 @@
-package com.example.soilapp.ui
+package com.moraura.soilapp.ui
 
 import android.app.Application
 import android.bluetooth.BluetoothDevice
 import androidx.lifecycle.AndroidViewModel
-import com.example.soilapp.ble.BleManager
-import com.example.soilapp.ble.SoilSenseConstants
+import com.moraura.soilapp.ble.BleManager
+import com.moraura.soilapp.ble.SoilSenseConstants
 import java.util.UUID
 
 class SoilSenseViewModel(application: Application) : AndroidViewModel(application) {

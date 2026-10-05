@@ -1,4 +1,4 @@
-package com.example.soilapp.ui.screens
+package com.moraura.soilapp.ui.screens
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -8,7 +8,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.BluetoothSearching
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,11 +19,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.soilapp.data.model.ConnectionState
-import com.example.soilapp.data.model.SoilSenseMetrics
-import com.example.soilapp.data.model.SoilSenseThresholds
-import com.example.soilapp.ui.SoilSenseViewModel
-import com.example.soilapp.ui.theme.SoilAppTheme
+import com.moraura.soilapp.data.model.ConnectionState
+import com.moraura.soilapp.data.model.SoilSenseMetrics
+import com.moraura.soilapp.data.model.SoilSenseThresholds
+import com.moraura.soilapp.ui.SoilSenseViewModel
+import com.moraura.soilapp.ui.theme.SoilAppTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

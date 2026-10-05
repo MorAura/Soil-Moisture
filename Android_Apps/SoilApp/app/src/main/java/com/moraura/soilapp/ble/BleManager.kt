@@ -1,4 +1,4 @@
-package com.example.soilapp.ble
+package com.moraura.soilapp.ble
 
 import android.annotation.SuppressLint
 import android.bluetooth.*
@@ -9,9 +9,9 @@ import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.os.ParcelUuid
 import android.util.Log
-import com.example.soilapp.data.model.ConnectionState
-import com.example.soilapp.data.model.SoilSenseMetrics
-import com.example.soilapp.data.model.SoilSenseThresholds
+import com.moraura.soilapp.data.model.ConnectionState
+import com.moraura.soilapp.data.model.SoilSenseMetrics
+import com.moraura.soilapp.data.model.SoilSenseThresholds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay

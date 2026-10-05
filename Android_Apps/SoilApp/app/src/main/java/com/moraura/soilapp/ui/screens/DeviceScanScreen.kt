@@ -1,4 +1,4 @@
-package com.example.soilapp.ui.screens
+package com.moraura.soilapp.ui.screens
 
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
@@ -21,10 +21,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.soilapp.ble.SoilSenseConstants
-import com.example.soilapp.data.model.ConnectionState
-import com.example.soilapp.ui.SoilSenseViewModel
-import com.example.soilapp.ui.theme.SoilAppTheme
+import com.moraura.soilapp.ble.SoilSenseConstants
+import com.moraura.soilapp.data.model.ConnectionState
+import com.moraura.soilapp.ui.SoilSenseViewModel
+import com.moraura.soilapp.ui.theme.SoilAppTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("MissingPermission")

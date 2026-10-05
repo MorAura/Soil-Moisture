@@ -1,6 +1,5 @@
-package com.example.soilapp.ui.theme
+package com.moraura.soilapp.ui.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.*

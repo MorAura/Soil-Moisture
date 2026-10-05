@@ -1,4 +1,4 @@
-package com.example.soilapp
+package com.moraura.soilapp
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -27,14 +27,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
-import com.example.soilapp.data.model.ConnectionState
-import com.example.soilapp.ui.SoilSenseViewModel
-import com.example.soilapp.ui.navigation.SoilSenseRoute
-import com.example.soilapp.ui.screens.DashboardScreen
-import com.example.soilapp.ui.screens.DeviceScanScreen
-import com.example.soilapp.ui.screens.HistoryScreen
-import com.example.soilapp.ui.screens.ThresholdsScreen
-import com.example.soilapp.ui.theme.SoilAppTheme
+import com.moraura.soilapp.data.model.ConnectionState
+import com.moraura.soilapp.ui.SoilSenseViewModel
+import com.moraura.soilapp.ui.navigation.SoilSenseRoute
+import com.moraura.soilapp.ui.screens.DashboardScreen
+import com.moraura.soilapp.ui.screens.DeviceScanScreen
+import com.moraura.soilapp.ui.screens.HistoryScreen
+import com.moraura.soilapp.ui.screens.ThresholdsScreen
+import com.moraura.soilapp.ui.theme.SoilAppTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

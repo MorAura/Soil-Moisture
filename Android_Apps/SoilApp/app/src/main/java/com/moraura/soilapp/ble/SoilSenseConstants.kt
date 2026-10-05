@@ -1,4 +1,4 @@
-package com.example.soilapp.ble
+package com.moraura.soilapp.ble
 
 import java.util.UUID
 

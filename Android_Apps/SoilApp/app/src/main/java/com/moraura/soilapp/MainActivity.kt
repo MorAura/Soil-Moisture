@@ -57,17 +57,12 @@ class MainActivity : ComponentActivity() {
 fun SoilSenseApp(viewModel: SoilSenseViewModel = viewModel()) {
     val context = LocalContext.current
     val permissionsToRequest = remember {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            listOf(
-                Manifest.permission.BLUETOOTH_SCAN,
-                Manifest.permission.BLUETOOTH_CONNECT,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            )
-        } else {
-            listOf(
-                Manifest.permission.ACCESS_FINE_LOCATION
-            )
-        }
+        listOf(
+            Manifest.permission.BLUETOOTH_SCAN,
+            Manifest.permission.BLUETOOTH_CONNECT,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.POST_NOTIFICATIONS //for push notifications
+        )
     }
 
     // Function to check if all permissions are granted

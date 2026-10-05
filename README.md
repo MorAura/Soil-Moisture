@@ -18,13 +18,16 @@ MorAura is designed to monitor plant conditions and help keep them within ideal 
 
 ## System Architecture
 
-The project is being developed in two versions. Version 1 sends sensor readings from the ESP32 to the Android app over Bluetooth Low Energy (BLE). Version 2 is in progress and is intended to send readings over Wi-Fi to a server.
+The firmware has three development tracks:
 
 ```text
-Soil moisture sensor ─┐
-Light sensor         ─┼──> ESP32 ──BLE (Version 1)──> Android app
-Temperature sensor   ─┘       └──Wi-Fi (Version 2, in progress)──> Server
+Sensors ──> ESP32
+             ├── Version 1: BLE ──> Android app
+             ├── Version 1.5 (experimental): BLE + Wi-Fi ──> ntfy.sh alerts
+             └── Version 2 (in progress): Wi-Fi ──> local logging / planned server
 ```
+
+Version 1.5 builds on the Version 1 sensor and BLE prototype. Its firmware adds Wi-Fi connectivity and an ntfy.sh alert routine; both alert delivery and low-power operation are still under development.
 
 ### Sensors
 
@@ -42,15 +45,16 @@ The following values are illustrative targets for the prototype. They should be 
 | Light | 1,000–10,000 lux |
 | Temperature | 20–28°C |
 
-When a reading leaves its target range, the system should notify the user that the condition is out of range.
+The Version 1.5 firmware can compare moisture and temperature readings with configured limits and indicate an out-of-range reading with the onboard LED. Sending that alert through ntfy.sh is not active yet.
 
 ## Build and Field Test Plan
 
 1. Research the problem and suitable sensors. (Complete)
 2. Develop the first ESP32 firmware and Android BLE app. (Implemented; hardware validation and calibration remain ongoing.)
-3. Develop Wi-Fi data logging and server communication. (In progress.)
-4. Visit plantations to survey users and collect feedback. (Planned.)
-5. Calibrate the monitoring ranges and test the system at real plantation sites. (Planned.)
+3. Extend Version 1 with Wi-Fi alerts and BLE Wi-Fi credential setup in Version 1.5. (In progress; ntfy delivery is not enabled yet.)
+4. Develop Wi-Fi data logging and server communication in Version 2. (In progress.)
+5. Visit plantations to survey users and collect feedback. (Planned.)
+6. Calibrate the monitoring ranges and test the system at real plantation sites. (Planned.)
 
 The field visits will help confirm that the system is practical for real-world scenarios.
 
@@ -62,8 +66,9 @@ The field visits will help confirm that the system is practical for real-world s
 ├── Android_Apps/
 │   └── SoilApp/             # Android app (Kotlin, Jetpack Compose)
 └── Sensor_Code/
-	├── Code_v1/Code_v1.ino # BLE firmware
-	└── Code_v2/Code_v2.ino # Wi-Fi and local logging work in progress
+    ├── Code_v1/Code_v1.ino       # BLE firmware
+    ├── Code_v1.5/Code_v1.5.ino   # BLE + Wi-Fi/ntfy prototype
+    └── Code_v2/Code_v2.ino       # Wi-Fi and local logging work in progress
 ```
 
 ## Getting Started
@@ -75,6 +80,14 @@ The Android project is in [`Android_Apps/SoilApp/`](Android_Apps/SoilApp/). Open
 The firmware currently reads soil moisture on `A3`, light on `A2`, and temperature from the ESP32's internal temperature sensor. Confirm the pin mapping and board support for the specific ESP32 before wiring or flashing. The internal temperature sensor is being used for testing and may not represent ambient plant temperature accurately.
 
 The app can scan for the `SoilSense` BLE service, show moisture, temperature, and light readings, plot received history, and configure minimum and maximum moisture and temperature thresholds. The firmware keeps up to 168 samples for each metric and sends those histories to the app over BLE. Light is currently mapped to a 0–100 sensor scale, not converted to calibrated lux; the app's lux label is provisional.
+
+### Version 1.5: BLE, Wi-Fi, and ntfy.sh (Experimental)
+
+The experimental firmware is [`Sensor_Code/Code_v1.5/Code_v1.5.ino`](Sensor_Code/Code_v1.5/Code_v1.5.ino). It builds on the Version 1 BLE sensor prototype and adds a Wi-Fi connection and an ntfy.sh notification routine. It still advertises the `SoilSense` BLE service and supports BLE writes for moisture and temperature limits, as well as Wi-Fi SSID and password characteristics. The Android app does not yet provide a setup flow for those Wi-Fi characteristics.
+
+The current sketch detects threshold violations and turns on the onboard LED, but the call that would send an ntfy.sh alert is commented out. If enabled, the routine currently posts to the hard-coded ntfy.sh topic `oiiaioiiiai` over HTTP. This is prototype behavior, not a configured or production-ready notification setup; do not use the hard-coded topic for private alerts.
+
+The sketch has a sleep-duration setting and a light-sleep scaffold, but the timer setup, actual sleep call, and loop call are commented out. Deep sleep is a planned future feature and is not currently implemented or active. Wi-Fi credentials are held in RTC-retained memory by this prototype and are not saved across a full power loss.
 
 ### Version 2: Wi-Fi and Server (In Progress)
 
@@ -99,7 +112,7 @@ The following parts list is based on the project BOM in [PartsList.pdf](PartsLis
 
 ## Status
 
-Version 1 has an ESP32 BLE firmware sketch and an Android app that receives sensor data and supports threshold configuration. Version 2 has early Wi-Fi, NTP time synchronization, and LittleFS logging code; sending data to a server is the next implementation step. Sensor calibration, hardware validation, and field testing remain outstanding.
+Version 1 has an ESP32 BLE firmware sketch and an Android app that receives sensor data and supports threshold configuration. Version 1.5 is an experimental extension with BLE Wi-Fi credential characteristics, Wi-Fi/ntfy alert code, and an inactive light-sleep scaffold; ntfy delivery and deep sleep are not active, and BLE credential setup is not integrated into the Android app. Version 2 has early Wi-Fi, NTP time synchronization, and LittleFS logging code; sending data to a server is the next implementation step. Sensor calibration, hardware validation, and field testing remain outstanding.
 
 ## Team
 

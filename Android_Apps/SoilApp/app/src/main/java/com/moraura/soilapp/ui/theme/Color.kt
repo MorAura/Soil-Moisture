@@ -1,4 +1,4 @@
-package com.example.soilapp.ui.theme
+package com.moraura.soilapp.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

@@ -1,4 +1,4 @@
-package com.example.soilapp.ui.navigation
+package com.moraura.soilapp.ui.navigation
 
 import androidx.navigation3.runtime.NavKey
 import kotlinx.serialization.Serializable

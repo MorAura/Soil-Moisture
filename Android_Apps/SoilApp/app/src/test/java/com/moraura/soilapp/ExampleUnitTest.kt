@@ -1,4 +1,4 @@
-package com.example.soilapp
+package com.moraura.soilapp
 
 import org.junit.Test
 

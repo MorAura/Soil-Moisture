@@ -1,4 +1,4 @@
-package com.example.soilapp.data.model
+package com.moraura.soilapp.data.model
 
 data class SoilSenseMetrics(
     val moisture: List<Int> = emptyList(),

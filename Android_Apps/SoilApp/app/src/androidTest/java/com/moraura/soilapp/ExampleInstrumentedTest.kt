@@ -1,4 +1,4 @@
-package com.example.soilapp
+package com.moraura.soilapp
 
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4

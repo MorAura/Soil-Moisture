@@ -1,4 +1,4 @@
-// Status Led
+// Status Led (Alerts)
 #define LedPin 8
 
 // Internal temp config
@@ -21,9 +21,9 @@ Connections:
 #define MoistureMin 1270
 
 // To store old data
-uint8_t moistureHist[168] = {0};
-uint8_t lightHist[168] = {0};
-uint8_t tempHist[168] = {0};
+RTC_DATA_ATTR uint8_t moistureHist[168] = {0};
+RTC_DATA_ATTR uint8_t lightHist[168] = {0};
+RTC_DATA_ATTR uint8_t tempHist[168] = {0};
 
 // Configured Alert Values
 uint8_t moistHigh = 100;
@@ -92,8 +92,7 @@ void readData(){
   if (moistLowAlert || moistHighAlert || tempLowAlert || tempHighAlert){
     digitalWrite(LedPin,HIGH);
     Serial.println("Alert");
-    
-    sendAlert();
+    //sendAlert();
 
   } else {
     digitalWrite(LedPin,LOW);
@@ -112,6 +111,10 @@ void readData(){
 #include <WiFiMulti.h>
 
 WiFiMulti WiFiMulti;
+
+// Store credentials in RTC memory so they persist through deep sleep
+RTC_DATA_ATTR char rtc_ssid[32] = "Your_SSID";
+RTC_DATA_ATTR char rtc_password[64] = "Your_PASSWORD";
 
 
 // BLE setup code
@@ -133,6 +136,10 @@ BLECharacteristic* pMoistMinCharacteristic = NULL;
 BLECharacteristic* pTempMaxCharacteristic = NULL;
 BLECharacteristic* pTempMinCharacteristic = NULL;
 
+
+BLECharacteristic* pAlertSSIDCharacteristic = NULL;
+BLECharacteristic* pAlertPassCharacteristic = NULL;
+
 #define SERVICE_UUID        "0d8d71f3-afea-4903-a389-d2db0912c1b1"
 
 #define MOIST_CHAR_UUID     "48ea775b-a582-4b00-b1b9-cf789c55887f"
@@ -143,6 +150,9 @@ BLECharacteristic* pTempMinCharacteristic = NULL;
 #define MOIST_MIN_CHAR_UUID "7470e5d5-00ee-49a4-87ba-88ad813b287b"
 #define TEMP_MAX_CHAR_UUID  "5f59d498-e642-426f-b63f-3e9dd58465f3"
 #define TEMP_MIN_CHAR_UUID  "014930eb-902d-4fbc-b7be-1f85da76fa37"
+
+#define ALERT_SSID_UUID  "d93c1417-f814-41c6-b38c-6d145b4df240"
+#define ALERT_PASS_UUID  "74d2f3b5-9553-409f-81d2-b2670feecaec"
 
 class MyServerCallbacks: public BLEServerCallbacks {
     void onConnect(BLEServer* pServer) {
@@ -190,6 +200,27 @@ class SharedCharacteristicCallbacks : public BLECharacteristicCallbacks {
       tempLow = *rxData;
       pTempMinCharacteristic->setValue(&tempLow, 1);
     }
+
+    if (pCharacteristic == pAlertSSIDCharacteristic) {
+      Serial.print("Alert SSID Characteristic written: ");
+      String rxValue = pCharacteristic->getValue();
+      Serial.println(rxValue.c_str());
+      //rtc_ssid = rxValue.c_str();
+      memcpy(rtc_ssid, rxValue.c_str(), rxValue.length());
+      rtc_ssid[sizeof(rtc_ssid) - 1] = '\0';
+      pAlertSSIDCharacteristic->setValue(rtc_ssid);
+    }
+
+    if (pCharacteristic == pAlertPassCharacteristic) {
+      Serial.print("Alert Pass Characteristic written: ");
+      String rxValue = pCharacteristic->getValue();
+      Serial.println(rxValue.c_str());
+      //rtc_password = rxValue.c_str();
+      memcpy(rtc_password, rxValue.c_str(), rxValue.length());
+      rtc_password[sizeof(rtc_password) - 1] = '\0';
+      pAlertPassCharacteristic->setValue(rtc_password);
+    }
+    
   }
 };
 
@@ -273,6 +304,27 @@ void StartComms(){
   pTempMinCharacteristic->setCallbacks(myWriteCallbacks); // ATTACH CALLBACK
   pTempMinCharacteristic->setValue(&tempLow, 1);
 
+  // Create the Characteristic Alert SSID Temperature
+  pAlertSSIDCharacteristic = pService->createCharacteristic(
+                      ALERT_SSID_UUID,
+                      BLECharacteristic::PROPERTY_READ |
+                      BLECharacteristic::PROPERTY_WRITE 
+                    );
+  pAlertSSIDCharacteristic->addDescriptor(new BLE2902());
+  pAlertSSIDCharacteristic->setCallbacks(myWriteCallbacks); // ATTACH CALLBACK
+  pAlertSSIDCharacteristic->setValue(&tempHigh, 1);
+
+  // Create the Characteristic Alert Pass Temperature
+  pAlertPassCharacteristic = pService->createCharacteristic(
+                      ALERT_PASS_UUID,
+                      BLECharacteristic::PROPERTY_READ |
+                      BLECharacteristic::PROPERTY_WRITE 
+                    );
+  pAlertPassCharacteristic->addDescriptor(new BLE2902());
+  pAlertPassCharacteristic->setCallbacks(myWriteCallbacks); // ATTACH CALLBACK
+  pAlertPassCharacteristic->setValue(&tempHigh, 1);
+  
+
   pService->start();
   
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
@@ -287,7 +339,7 @@ void StartComms(){
 void sendAlert(){
   esp_wifi_start();
 
-  WiFiMulti.addAP("iPhone", "iphone123");
+  WiFiMulti.addAP(rtc_ssid, rtc_password);
 
   Serial.println();
   Serial.println();
@@ -464,7 +516,7 @@ void loop(){
     delay(10);
   }
 
-  enterLightSleep();
+  //enterLightSleep();
 
 }
 

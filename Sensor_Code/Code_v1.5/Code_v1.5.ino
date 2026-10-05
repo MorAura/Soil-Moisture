@@ -31,6 +31,11 @@ uint8_t moistLow = 0;
 uint8_t tempHigh = 100;
 uint8_t tempLow = 0;
 
+bool moistLowAlert = false;
+bool moistHighAlert = false;
+bool tempLowAlert = false;
+bool tempHighAlert = false;
+
 bool deviceConnected = false;
 bool oldDeviceConnected = false;
 
@@ -63,9 +68,33 @@ void readData(){
 
   }
 
-  if (moistureVal < moistLow || moistureVal > moistHigh || tempRead < tempLow || tempRead > tempHigh){
+  if (moistureVal < moistLow) {
+      moistLowAlert = true;
+  } else {
+      moistLowAlert = false;
+  }
+  if (moistureVal > moistHigh) {
+      moistHighAlert = true;
+  } else {
+      moistHighAlert = false;
+  }
+  if (tempVal < tempLow) {
+      tempLowAlert = true;
+  } else {
+      tempLowAlert = false;
+  }
+  if (tempVal > tempHigh) {
+      tempHighAlert = true;
+  } else {
+      tempHighAlert = false;
+  }
+
+  if (moistLowAlert || moistHighAlert || tempLowAlert || tempHighAlert){
     digitalWrite(LedPin,HIGH);
     Serial.println("Alert");
+    
+    sendAlert();
+
   } else {
     digitalWrite(LedPin,LOW);
   }
@@ -74,6 +103,15 @@ void readData(){
   lightHist[167] = lightVal;
   tempHist[167] = tempVal;
 }
+
+// WiFi setup code
+
+#include "esp_mac.h"
+#include "esp_wifi.h"
+#include <WiFi.h>
+#include <WiFiMulti.h>
+
+WiFiMulti WiFiMulti;
 
 
 // BLE setup code
@@ -246,10 +284,89 @@ void StartComms(){
   Serial.println("Waiting for a client connection...");
 }
 
+void sendAlert(){
+  esp_wifi_start();
+
+  WiFiMulti.addAP("iPhone", "iphone123");
+
+  Serial.println();
+  Serial.println();
+  Serial.print("Waiting for WiFi... ");
+
+  while (WiFiMulti.run() != WL_CONNECTED) {
+    Serial.print(".");
+    delay(500);
+  }
+
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+
+  delay(500);
+
+  const uint16_t port = 80;
+  const char *host = "ntfy.sh";
+
+  Serial.print("Connecting to ");
+  Serial.println(host);
+
+  // Use NetworkClient class to create TCP connections
+  NetworkClient client;
+
+  if (!client.connect(host, port)) {
+    Serial.println("Connection failed.");
+    Serial.println("Waiting 5 seconds before retrying...");
+    delay(5000);
+    return;
+  }
+
+  String message = "{\"id\":";
+  message += ESP.getEfuseMac();
+  message += ", \"moistLow\":";
+  message += moistLowAlert;
+  message += ", \"moistHigh\":";
+  message += moistHighAlert;
+  message += ", \"tempLow\":";
+  message += tempLowAlert;
+  message += ", \"tempHigh\":";
+  message += tempHighAlert;
+  message += "}";
+
+
+  client.print("POST /oiiaioiiiai HTTP/1.1\r\n");
+  client.print("Host: ntfy.sh\r\n");
+  client.print("Content-Length: ");
+  client.print(message.length());
+  client.print("\r\n\r\n");
+  client.print(message);
+  Serial.println(message);
+
+  int maxloops = 0;
+
+  //wait for the server's reply to become available
+  while (!client.available() && maxloops < 1000) {
+    maxloops++;
+    delay(1);  //delay 1 msec
+  }
+  if (client.available() > 0) {
+    //read back one line from the server
+    String line = client.readStringUntil('\r');
+    Serial.println(line);
+  } else {
+    Serial.println("client.available() timed out ");
+  }
+
+  Serial.println("Closing connection.");
+  client.stop();
+
+  esp_wifi_stop();
+
+}
+
 void setup(){
 
   Serial.begin(115200);
-  Serial.println("Hello World");
   // Setup adc pins for moisture and light level as inputs
   pinMode(A3,INPUT);
   pinMode(A2,INPUT);

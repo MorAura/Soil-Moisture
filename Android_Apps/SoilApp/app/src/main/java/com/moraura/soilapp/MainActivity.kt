@@ -35,6 +35,9 @@ import com.moraura.soilapp.ui.screens.DeviceScanScreen
 import com.moraura.soilapp.ui.screens.HistoryScreen
 import com.moraura.soilapp.ui.screens.ThresholdsScreen
 import com.moraura.soilapp.ui.theme.SoilAppTheme
+import android.content.Intent
+import com.moraura.soilapp.service.NtfyListenerService
+import kotlin.jvm.java
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,6 +48,8 @@ class MainActivity : ComponentActivity() {
                 SoilSenseApp()
             }
         }
+        val intent = Intent(this, NtfyListenerService::class.java)
+        startForegroundService(intent)
     }
 }
 

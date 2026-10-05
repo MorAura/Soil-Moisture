@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "797522827671",
+    "project_id": "moraura-89029",
+    "storage_bucket": "moraura-89029.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:797522827671:android:98eeb1fd81944a03d90cd2",
+        "android_client_info": {
+          "package_name": "com.moraura.soilapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCLBT3LXvCWgZiottYDwV1m1poAEpNelNs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

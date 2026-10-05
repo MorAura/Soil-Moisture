@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.devtools.ksp)
     alias(libs.plugins.jetbrains.kotlin.plugin.serialization)
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -78,6 +79,7 @@ dependencies {
     implementation(libs.vico.compose)
     implementation(libs.vico.compose.m3)
     implementation(libs.vico.core)
+    implementation(platform("com.google.firebase:firebase-bom:34.19.0"))
     testImplementation(libs.androidx.core)
     testImplementation(libs.androidx.junit)
     testImplementation(libs.junit)

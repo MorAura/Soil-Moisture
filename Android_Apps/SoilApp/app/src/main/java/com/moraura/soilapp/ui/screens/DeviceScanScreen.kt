@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bluetooth
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.FilterList
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.*
@@ -26,6 +27,12 @@ import com.moraura.soilapp.data.model.ConnectionState
 import com.moraura.soilapp.ui.SoilSenseViewModel
 import com.moraura.soilapp.ui.theme.SoilAppTheme
 
+data class DiscoveredDevice(
+    val name: String,
+    val address: String,
+    val rawDevice: BluetoothDevice? = null
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("MissingPermission")
 @Composable
@@ -37,12 +44,49 @@ fun DeviceScanScreen(
     val connectionState by viewModel.connectionState.collectAsState()
     var filterSoilSense by remember { mutableStateOf(false) }
 
-    val filteredDevices = if (filterSoilSense) {
-        foundDevices.filter { it.name?.contains(SoilSenseConstants.DEVICE_NAME, ignoreCase = true) == true }
-    } else {
-        foundDevices
+    val filteredDevices = remember(foundDevices, filterSoilSense) {
+        val list = if (filterSoilSense) {
+            foundDevices.filter { it.name?.contains(SoilSenseConstants.DEVICE_NAME, ignoreCase = true) == true }
+        } else {
+            foundDevices
+        }
+        list.map { device ->
+            DiscoveredDevice(
+                name = device.name ?: "Unknown Device",
+                address = device.address,
+                rawDevice = device
+            )
+        }
     }
 
+    DeviceScanContent(
+        devices = filteredDevices,
+        connectionState = connectionState,
+        filterSoilSense = filterSoilSense,
+        onFilterToggle = { filterSoilSense = !filterSoilSense },
+        onStartScan = { viewModel.startScanning() },
+        onStopScan = { viewModel.stopScanning() },
+        onDeviceClick = { discovered ->
+            discovered.rawDevice?.let { onDeviceSelected(it) }
+        }
+    )
+
+    LaunchedEffect(Unit) {
+        viewModel.startScanning()
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DeviceScanContent(
+    devices: List<DiscoveredDevice>,
+    connectionState: ConnectionState,
+    filterSoilSense: Boolean,
+    onFilterToggle: () -> Unit,
+    onStartScan: () -> Unit,
+    onStopScan: () -> Unit,
+    onDeviceClick: (DiscoveredDevice) -> Unit
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -50,42 +94,55 @@ fun DeviceScanScreen(
                 Brush.verticalGradient(
                     colors = listOf(
                         MaterialTheme.colorScheme.primaryContainer,
-                        MaterialTheme.colorScheme.background, // Fades into your base theme
-                        MaterialTheme.colorScheme.background, // Top tint
+                        MaterialTheme.colorScheme.background,
+                        MaterialTheme.colorScheme.background
                     )
                 )
             )
     ) {
-
         Scaffold(
             containerColor = Color.Transparent,
             topBar = {
                 TopAppBar(
                     title = {
                         Column {
-                            Text("MoraAura SoilSense")
                             Text(
-                                "Device Discovery",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                                "MorAura",
+                                fontWeight = FontWeight.Bold,
+                                )
+//                            Text(
+//                                "Soil Monitor",
+//                                style = MaterialTheme.typography.labelMedium,
+//                                color = MaterialTheme.colorScheme.onSurfaceVariant
+//                            )
+//                            Text(
+//                                "Device Discovery",
+//                                style = MaterialTheme.typography.labelMedium,
+//                                color = MaterialTheme.colorScheme.onSurfaceVariant
+//                            )
                         }
                     },
                     actions = {
-                        IconButton(onClick = { filterSoilSense = !filterSoilSense }) {
+                        IconButton(onClick = onFilterToggle) {
                             Icon(
                                 imageVector = Icons.Rounded.FilterList,
                                 contentDescription = "Show only named SoilSense devices",
                                 tint = if (filterSoilSense) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                             )
                         }
-                        IconButton(onClick = { viewModel.startScanning() }) {
-                            Icon(Icons.Rounded.Refresh, contentDescription = "Scan Again")
+                        if (connectionState == ConnectionState.Scanning) {
+                            IconButton(onClick = onStopScan) {
+                                Icon(Icons.Rounded.Close, contentDescription = "Stop Scanning")
+                            }
+                        } else {
+                            IconButton(onClick = onStartScan) {
+                                Icon(Icons.Rounded.Refresh, contentDescription = "Scan Again")
+                            }
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = Color.Transparent,
-                        scrolledContainerColor = Color.Transparent,
+                        scrolledContainerColor = Color.Transparent
                     )
                 )
             }
@@ -96,26 +153,40 @@ fun DeviceScanScreen(
                     .fillMaxSize()
             ) {
                 if (connectionState is ConnectionState.Scanning) {
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                    Text(
-                        text = "Searching for SoilSense sensors nearby...",
-                        style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier.padding(start = 16.dp, top = 8.dp),
-                        color = MaterialTheme.colorScheme.primary
+                    LinearProgressIndicator(
+                        modifier = Modifier.fillMaxWidth(),
+                        trackColor = MaterialTheme.colorScheme.primaryContainer
                     )
+//                    Spacer(modifier = Modifier.height(8.dp))
+//                    Text(
+//                        text = "Searching for SoilSense sensors nearby...",
+//                        style = MaterialTheme.typography.labelSmall,
+//                        modifier = Modifier.padding(start = 16.dp, top = 8.dp),
+//                        color = MaterialTheme.colorScheme.primary,
+//                    )
                 }
 
-                if (filteredDevices.isEmpty()) {
+                if (devices.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = if (filterSoilSense) "No devices matching 'SoilSense' found" else "Searching for SoilSense devices...",
-                                style = MaterialTheme.typography.bodyLarge,
-                                textAlign = TextAlign.Center
-                            )
+                            if (connectionState is ConnectionState.Scanning) {
+                                Text(
+                                    text = if (filterSoilSense) "No devices matching 'SoilSense' found" else "Searching for SoilSense devices...",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    textAlign = TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            } else {
+                                Text(
+                                    text = if (filterSoilSense) "No devices matching 'SoilSense' found" else "No devices found",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    textAlign = TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
                             if (!filterSoilSense && connectionState !is ConnectionState.Scanning) {
                                 Button(
-                                    onClick = { viewModel.startScanning() },
+                                    onClick = onStartScan,
                                     modifier = Modifier.padding(top = 16.dp)
                                 ) {
                                     Text("Scan Again")
@@ -128,10 +199,11 @@ fun DeviceScanScreen(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(filteredDevices) { device ->
+                        items(devices) { device ->
                             DeviceItem(
-                                device = device,
-                                onClick = { onDeviceSelected(device) }
+                                name = device.name,
+                                address = device.address,
+                                onClick = { onDeviceClick(device) }
                             )
                         }
                     }
@@ -139,16 +211,12 @@ fun DeviceScanScreen(
             }
         }
     }
-
-    LaunchedEffect(Unit) {
-        viewModel.startScanning()
-    }
 }
 
-@SuppressLint("MissingPermission")
 @Composable
 fun DeviceItem(
-    device: BluetoothDevice,
+    name: String,
+    address: String,
     onClick: () -> Unit
 ) {
     Card(
@@ -174,13 +242,13 @@ fun DeviceItem(
             Spacer(modifier = Modifier.width(16.dp))
             Column {
                 Text(
-                    text = device.name ?: "Unknown Device",
+                    text = name,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = device.address,
+                    text = address,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -194,53 +262,17 @@ fun DeviceItem(
 @Composable
 fun DeviceScanScreenPreview() {
     SoilAppTheme {
-        Scaffold(
-            topBar = {
-                TopAppBar(title = { Text("MoraAura SoilSense") })
-            }
-        ) { padding ->
-            Column(
-                modifier = Modifier
-                    .padding(padding)
-                    .padding(16.dp)
-            ) {
-                Text("Scanning...", style = MaterialTheme.typography.bodyLarge)
-                Spacer(modifier = Modifier.height(16.dp))
-                // Just for preview purposes
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .padding(16.dp)
-                            .fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Bluetooth,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(32.dp)
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column {
-                            Text(
-                                text = "SoilSense Device",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "00:11:22:33:44:55",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-            }
-        }
+        DeviceScanContent(
+            devices = listOf(
+                DiscoveredDevice("SoilSense Sensor #1", "00:11:22:33:44:55"),
+                DiscoveredDevice("SoilSense Sensor #2", "AA:BB:CC:DD:EE:FF")
+            ),
+            connectionState = ConnectionState.Scanning,
+            filterSoilSense = false,
+            onFilterToggle = {},
+            onStartScan = {},
+            onStopScan = {},
+            onDeviceClick = {}
+        )
     }
 }

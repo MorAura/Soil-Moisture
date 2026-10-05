@@ -178,6 +178,7 @@ class BleManager(private val context: Context) {
     fun stopScan() {
         scope.launch(Dispatchers.IO) {
             bluetoothAdapter?.bluetoothLeScanner?.stopScan(scanCallback)
+            _connectionState.value = ConnectionState.Error("manually stopped")
         }
     }
 

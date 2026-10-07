@@ -6,7 +6,13 @@
 temperature_sensor_handle_t temp_sensor = NULL;
 
 #include "esp_sleep.h"
-const uint64_t SLEEP_DURATION_SEC = 60;
+#define uS_TO_S_FACTOR 1000000ULL   // Conversion factor for micro seconds to seconds
+#define SLEEP_DURATION_SEC  60
+
+#include "driver/gpio.h"
+#define WAKEUP_GPIO_PIN GPIO_NUM_3
+
+
 
 /*
 Connections:
@@ -226,7 +232,7 @@ class SharedCharacteristicCallbacks : public BLECharacteristicCallbacks {
 
 SharedCharacteristicCallbacks* myWriteCallbacks = new SharedCharacteristicCallbacks();
 
-void StartComms(){
+void StartBLE(){
   // Turn on BLE
 
   BLEDevice::init("SoilSense");
@@ -334,6 +340,44 @@ void StartComms(){
   BLEDevice::startAdvertising();
   
   Serial.println("Waiting for a client connection...");
+
+  unsigned long currentMillis = millis();
+  unsigned long previousMillis = currentMillis;
+
+  while (deviceConnected || currentMillis - previousMillis < 60000) {
+    currentMillis = millis();
+
+    if (deviceConnected) {
+      previousMillis = currentMillis; // keep resetting the 60s timer while the device is connected
+      // so when it disconnects, it's a 60s timer
+
+      // FOR TESTING  
+      readData(); 
+
+      delay(500);
+      Serial.println("Sending Moisture Data...");
+      pMoistCharacteristic->setValue(moistureHist, sizeof(moistureHist));
+      pMoistCharacteristic->notify();
+      delay(500);  
+      Serial.println("Sending Temperature Data...");
+      pTempCharacteristic->setValue(tempHist, sizeof(tempHist));
+      pTempCharacteristic->notify();
+      delay(500);
+      Serial.println("Sending Light Data...");
+      pLightCharacteristic->setValue(lightHist, sizeof(lightHist));
+      pLightCharacteristic->notify();
+
+      oldDeviceConnected = deviceConnected;
+    }
+
+    if (!deviceConnected && oldDeviceConnected) {
+      delay(500);  
+      pServer->startAdvertising();
+      Serial.println("Client disconnected. Restarting advertising...");
+      oldDeviceConnected = deviceConnected;
+    } 
+    delay(10);
+  }  
 }
 
 void sendAlert(){
@@ -417,106 +461,47 @@ void sendAlert(){
 }
 
 void setup(){
-
   Serial.begin(115200);
+  Serial.println("Starting Sensor");
+
   // Setup adc pins for moisture and light level as inputs
   pinMode(A3,INPUT);
   pinMode(A2,INPUT);
+
   // Setup onboard led as output
   pinMode(LedPin,OUTPUT);
   digitalWrite(LedPin,HIGH);
-  delay(1000);
+  delay(500);
   digitalWrite(LedPin,LOW);
+
   // Setup internal temperature sensor
   temperature_sensor_config_t temp_sensor_config = TEMPERATURE_SENSOR_CONFIG_DEFAULT(-10, 80);
   ESP_ERROR_CHECK(temperature_sensor_install(&temp_sensor_config, &temp_sensor));
   ESP_ERROR_CHECK(temperature_sensor_enable(temp_sensor));
   delay(5000);
 
-  // Setup the name
-  
-
-  Serial.println("Starting Sensor");
-  StartComms();
-}
-
-void enterLightSleep() {
-    Serial.println("Timeout reached. Stopping BLE...");
-    
-    if (pServer != NULL) {
-        BLEDevice::getAdvertising()->stop();
-        // Disconnect any active client before sleeping to prevent hanging
-        if (deviceConnected) {
-            // 0 is the default client ID
-            pServer->disconnect(0); 
-        }
-    }
-    
-    // Convert seconds to microseconds for the timer
-    // esp_sleep_enable_timer_wakeup(SLEEP_DURATION_SEC * 1000000ULL);
-    
-    Serial.println("Entering Light Sleep for 1 minute...");
-    Serial.flush(); // Ensure all serial data prints before the CPU stops
-    
-    delay(1000);
-
-    //digitalWrite(LedPin,LOW);
-    // esp_light_sleep_start();
-    //digitalWrite(LedPin,HIGH);
-    Serial.println("Woke up from Light Sleep!");
-    
-    if (pServer != NULL) {
-        BLEDevice::getAdvertising()->start();
-        Serial.println("BLE Advertising restarted.");
-    }
-}
-
-
-void loop(){
-
-  readData();
-  unsigned long currentMillis = millis();
-  unsigned long previousMillis = currentMillis;
-
-  while (deviceConnected || currentMillis - previousMillis < 60000) {
-    currentMillis = millis();
-
-    if (deviceConnected) {
-      previousMillis = currentMillis; // keep resetting the 60s timer while the device is connected
-      // so when it disconnects, it's a 60s timer
-      oldDeviceConnected = 1;
-      // test
-      readData(); 
-
-      delay(500);
-
-      Serial.println("Sending Moisture Data...");
-      pMoistCharacteristic->setValue(moistureHist, sizeof(moistureHist));
-      pMoistCharacteristic->notify();
-      delay(500);  
-
-      Serial.println("Sending Temperature Data...");
-      pTempCharacteristic->setValue(tempHist, sizeof(tempHist));
-      pTempCharacteristic->notify();
-      delay(500);
-
-      Serial.println("Sending Light Data...");
-      pLightCharacteristic->setValue(lightHist, sizeof(lightHist));
-      pLightCharacteristic->notify();
-
-      // oldDeviceConnected = deviceConnected;
-    }
-
-    if (!deviceConnected && oldDeviceConnected) {
-      delay(500);  
-      pServer->startAdvertising();
-      Serial.println("Client disconnected. Restarting advertising...");
-      oldDeviceConnected = deviceConnected;
-    } 
-    delay(10);
+  // Check for wakeup cause
+  esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
+  if (wakeup_reason == ESP_SLEEP_WAKEUP_TIMER) {
+    Serial.println("Woke up from timer");
+    readData();
+  } else {
+    Serial.println("Woke up from PIN");
+    StartBLE();
   }
 
-  //enterLightSleep();
+  // Setup wake pin and sleep timer
+  pinMode(WAKEUP_GPIO_PIN, INPUT_PULLUP);
+  uint64_t pin_mask = (1ULL << WAKEUP_GPIO_PIN);
+  esp_deep_sleep_enable_gpio_wakeup(pin_mask, ESP_GPIO_WAKEUP_GPIO_LOW);
+  esp_sleep_enable_timer_wakeup(SLEEP_DURATION_SEC * uS_TO_S_FACTOR);
+
+  Serial.println("Entering deep sleep...");
+  Serial.flush();
+  esp_deep_sleep_start();
+}
+
+void loop(){
 
 }
 

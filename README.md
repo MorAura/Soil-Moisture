@@ -23,11 +23,11 @@ The firmware has three development tracks:
 ```text
 Sensors ──> ESP32
              ├── Version 1: BLE ──> Android app
-             ├── Version 1.5 (experimental): BLE + Wi-Fi ──> ntfy.sh alerts
+             ├── Version 1.5 (experimental): BLE + Wi-Fi + external pushbutton BLE toggle ──> ntfy.sh alerts / power-saving BLE mode
              └── Version 2 (in progress): Wi-Fi ──> local logging / planned server
 ```
 
-Version 1.5 builds on the Version 1 sensor and BLE prototype. Its firmware adds Wi-Fi connectivity and an ntfy.sh alert routine; both alert delivery and low-power operation are still under development.
+Version 1.5 builds on the Version 1 sensor and BLE prototype. Its firmware adds Wi-Fi connectivity and an ntfy.sh alert routine, and includes an external pushbutton that can switch the device into BLE mode to conserve battery life when Wi-Fi is not needed.
 
 ### Sensors
 
@@ -83,11 +83,11 @@ The app can scan for the `SoilSense` BLE service, show moisture, temperature, an
 
 ### Version 1.5: BLE, Wi-Fi, and ntfy.sh (Experimental)
 
-The experimental firmware is [`Sensor_Code/Code_v1.5/Code_v1.5.ino`](Sensor_Code/Code_v1.5/Code_v1.5.ino). It builds on the Version 1 BLE sensor prototype and adds a Wi-Fi connection and an ntfy.sh notification routine. It still advertises the `SoilSense` BLE service and supports BLE writes for moisture and temperature limits, as well as Wi-Fi SSID and password characteristics. The Android app does not yet provide a setup flow for those Wi-Fi characteristics.
+The experimental firmware is [`Sensor_Code/Code_v1.5/Code_v1.5.ino`](Sensor_Code/Code_v1.5/Code_v1.5.ino). It builds on the Version 1 BLE sensor prototype and adds a Wi-Fi connection and an ntfy.sh notification routine. It still advertises the `SoilSense` BLE service and supports BLE writes for moisture and temperature limits, as well as Wi-Fi SSID and password characteristics. An external pushbutton can be used to switch the device into BLE mode to conserve battery life when Wi-Fi is not required. The Android app does not yet provide a setup flow for those Wi-Fi characteristics.
 
 The current sketch detects threshold violations and turns on the onboard LED, but the call that would send an ntfy.sh alert is commented out. If enabled, the routine currently posts to the hard-coded ntfy.sh topic `oiiaioiiiai` over HTTP. This is prototype behavior, not a configured or production-ready notification setup; do not use the hard-coded topic for private alerts.
 
-The sketch has a sleep-duration setting and a light-sleep scaffold, but the timer setup, actual sleep call, and loop call are commented out. Deep sleep is a planned future feature and is not currently implemented or active. Wi-Fi credentials are held in RTC-retained memory by this prototype and are not saved across a full power loss.
+The sketch includes deep-sleep support for lower power consumption, replacing the earlier light-sleep scaffold. Wi-Fi credentials are held in RTC-retained memory by this prototype and are not saved across a full power loss.
 
 ### Version 2: Wi-Fi and Server (In Progress)
 

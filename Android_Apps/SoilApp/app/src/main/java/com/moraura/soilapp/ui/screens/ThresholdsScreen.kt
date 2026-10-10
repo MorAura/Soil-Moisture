@@ -2,17 +2,25 @@ package com.moraura.soilapp.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.Thermostat
+import androidx.compose.material.icons.rounded.Visibility
+import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.WaterDrop
+import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.moraura.soilapp.ui.SoilSenseViewModel
@@ -30,7 +38,7 @@ fun ThresholdsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Threshold Configuration") },
+                title = { Text("Device Configuration") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
@@ -68,6 +76,78 @@ fun ThresholdsScreen(
                 onMinChange = { viewModel.updateTemperatureMin(it) },
                 onMaxChange = { viewModel.updateTemperatureMax(it) }
             )
+
+            WifiConfigCategory(
+                ssid = thresholds.wifiSsid,
+                password = thresholds.wifiPassword,
+                onSaveWifi = { ssid, password ->
+                    viewModel.updateWifiCredentials(ssid, password)
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun WifiConfigCategory(
+    ssid: String,
+    password: String,
+    onSaveWifi: (ssid: String, password: String) -> Unit
+) {
+    var ssidInput by remember(ssid) { mutableStateOf(ssid) }
+    var passwordInput by remember(password) { mutableStateOf(password) }
+    var passwordVisible by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Rounded.Wifi, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(text = "WiFi Credentials", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = ssidInput,
+                onValueChange = { ssidInput = it },
+                label = { Text("WiFi SSID") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = passwordInput,
+                onValueChange = { passwordInput = it },
+                label = { Text("WiFi Password") },
+                singleLine = true,
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                trailingIcon = {
+                    val image = if (passwordVisible) Icons.Rounded.Visibility else Icons.Rounded.VisibilityOff
+                    val description = if (passwordVisible) "Hide password" else "Show password"
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(imageVector = image, contentDescription = description)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = { onSaveWifi(ssidInput, passwordInput) },
+                modifier = Modifier.align(Alignment.End)
+            ) {
+                Icon(Icons.Rounded.Save, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Save WiFi Credentials")
+            }
         }
     }
 }
@@ -158,6 +238,11 @@ fun ThresholdsScreenPreview() {
                 "Moisture Thresholds",
                 Icons.Rounded.WaterDrop,
                 30, 70, 0f..100f, "%", {}, {}
+            )
+            WifiConfigCategory(
+                ssid = "MyHomeWiFi",
+                password = "Password123",
+                onSaveWifi = { _, _ -> }
             )
         }
     }

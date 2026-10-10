@@ -17,6 +17,10 @@ object SoilSenseConstants {
     val TEMP_MAX_CHAR_UUID: UUID = UUID.fromString("5f59d498-e642-426f-b63f-3e9dd58465f3")
     val TEMP_MIN_CHAR_UUID: UUID = UUID.fromString("014930eb-902d-4fbc-b7be-1f85da76fa37")
 
+    // WiFi Configuration
+    val ALERT_SSID_UUID: UUID = UUID.fromString("d93c1417-f814-41c6-b38c-6d145b4df240")
+    val ALERT_PASS_UUID: UUID = UUID.fromString("74d2f3b5-9553-409f-81d2-b2670feecaec")
+
     const val EXPECTED_DATA_POINTS = 168
     const val REQUESTED_MTU = 517
 }

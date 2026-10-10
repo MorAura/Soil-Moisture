@@ -10,7 +10,9 @@ data class SoilSenseThresholds(
     val moistureMax: Int = 0,
     val moistureMin: Int = 0,
     val temperatureMax: Int = 0,
-    val temperatureMin: Int = 0
+    val temperatureMin: Int = 0,
+    val wifiSsid: String = "",
+    val wifiPassword: String = ""
 )
 
 sealed class ConnectionState {

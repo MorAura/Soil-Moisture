@@ -39,4 +39,17 @@ class SoilSenseViewModel(application: Application) : AndroidViewModel(applicatio
     fun updateMoistureMin(value: Int) = updateThreshold(SoilSenseConstants.MOIST_MIN_CHAR_UUID, value)
     fun updateTemperatureMax(value: Int) = updateThreshold(SoilSenseConstants.TEMP_MAX_CHAR_UUID, value)
     fun updateTemperatureMin(value: Int) = updateThreshold(SoilSenseConstants.TEMP_MIN_CHAR_UUID, value)
+
+    fun updateWifiSsid(value: String) {
+        bleManager.writeStringCharacteristic(SoilSenseConstants.ALERT_SSID_UUID, value)
+    }
+
+    fun updateWifiPassword(value: String) {
+        bleManager.writeStringCharacteristic(SoilSenseConstants.ALERT_PASS_UUID, value)
+    }
+
+    fun updateWifiCredentials(ssid: String, pass: String) {
+        updateWifiSsid(ssid)
+        updateWifiPassword(pass)
+    }
 }

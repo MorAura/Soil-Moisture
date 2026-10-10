@@ -252,12 +252,14 @@ class BleManager(private val context: Context) {
                 }
             }
 
-            // 3. Read threshold values
+            // 3. Read threshold and WiFi values
             val thresholdChars = listOf(
                 SoilSenseConstants.MOIST_MAX_CHAR_UUID,
                 SoilSenseConstants.MOIST_MIN_CHAR_UUID,
                 SoilSenseConstants.TEMP_MAX_CHAR_UUID,
-                SoilSenseConstants.TEMP_MIN_CHAR_UUID
+                SoilSenseConstants.TEMP_MIN_CHAR_UUID,
+                SoilSenseConstants.ALERT_SSID_UUID,
+                SoilSenseConstants.ALERT_PASS_UUID
             )
             for (uuid in thresholdChars) {
                 service.getCharacteristic(uuid)?.let { characteristic ->
@@ -275,35 +277,48 @@ class BleManager(private val context: Context) {
         Log.d(TAG, "Received characteristic update: ${characteristic.uuid}: ${data.contentToString()}")
 
         val parsedList = parseByteArray(data)
-        if (parsedList.isEmpty()) return
 
         when (characteristic.uuid) {
             SoilSenseConstants.MOIST_CHAR_UUID -> {
-                _metrics.update { current ->
-                    current.copy(moisture = if (current.moisture.isEmpty()) parsedList else current.moisture + parsedList)
+                if (parsedList.isNotEmpty()) {
+                    _metrics.update { current ->
+                        current.copy(moisture = if (current.moisture.isEmpty()) parsedList else current.moisture + parsedList)
+                    }
                 }
             }
             SoilSenseConstants.TEMP_CHAR_UUID -> {
-                _metrics.update { current ->
-                    current.copy(temperature = if (current.temperature.isEmpty()) parsedList else current.temperature + parsedList)
+                if (parsedList.isNotEmpty()) {
+                    _metrics.update { current ->
+                        current.copy(temperature = if (current.temperature.isEmpty()) parsedList else current.temperature + parsedList)
+                    }
                 }
             }
             SoilSenseConstants.LIGHT_CHAR_UUID -> {
-                _metrics.update { current ->
-                    current.copy(light = if (current.light.isEmpty()) parsedList else current.light + parsedList)
+                if (parsedList.isNotEmpty()) {
+                    _metrics.update { current ->
+                        current.copy(light = if (current.light.isEmpty()) parsedList else current.light + parsedList)
+                    }
                 }
             }
             SoilSenseConstants.MOIST_MAX_CHAR_UUID -> {
-                _thresholds.update { it.copy(moistureMax = data[0].toInt() and 0xFF) }
+                if (data.isNotEmpty()) _thresholds.update { it.copy(moistureMax = data[0].toInt() and 0xFF) }
             }
             SoilSenseConstants.MOIST_MIN_CHAR_UUID -> {
-                _thresholds.update { it.copy(moistureMin = data[0].toInt() and 0xFF) }
+                if (data.isNotEmpty()) _thresholds.update { it.copy(moistureMin = data[0].toInt() and 0xFF) }
             }
             SoilSenseConstants.TEMP_MAX_CHAR_UUID -> {
-                _thresholds.update { it.copy(temperatureMax = data[0].toInt() and 0xFF) }
+                if (data.isNotEmpty()) _thresholds.update { it.copy(temperatureMax = data[0].toInt() and 0xFF) }
             }
             SoilSenseConstants.TEMP_MIN_CHAR_UUID -> {
-                _thresholds.update { it.copy(temperatureMin = data[0].toInt() and 0xFF) }
+                if (data.isNotEmpty()) _thresholds.update { it.copy(temperatureMin = data[0].toInt() and 0xFF) }
+            }
+            SoilSenseConstants.ALERT_SSID_UUID -> {
+                val ssid = String(data, Charsets.UTF_8).trimEnd('\u0000')
+                _thresholds.update { it.copy(wifiSsid = ssid) }
+            }
+            SoilSenseConstants.ALERT_PASS_UUID -> {
+                val pass = String(data, Charsets.UTF_8).trimEnd('\u0000')
+                _thresholds.update { it.copy(wifiPassword = pass) }
             }
         }
     }
@@ -326,6 +341,20 @@ class BleManager(private val context: Context) {
         }
     }
 
+    fun writeStringCharacteristic(uuid: UUID, value: String) {
+        updateLocalStringConfig(uuid, value)
+        scope.launch(Dispatchers.IO) {
+            val gatt = bluetoothGatt ?: return@launch
+            val service = gatt.getService(SoilSenseConstants.SERVICE_UUID) ?: return@launch
+            val characteristic = service.getCharacteristic(uuid) ?: return@launch
+            
+            @Suppress("DEPRECATION")
+            characteristic.value = value.toByteArray(Charsets.UTF_8)
+            @Suppress("DEPRECATION")
+            gatt.writeCharacteristic(characteristic)
+        }
+    }
+
     // update locally stored threshold values
     private fun updateLocalThreshold(uuid: UUID, value: Int) {
         when (uuid) {
@@ -333,6 +362,13 @@ class BleManager(private val context: Context) {
             SoilSenseConstants.MOIST_MIN_CHAR_UUID -> _thresholds.update { it.copy(moistureMin = value) }
             SoilSenseConstants.TEMP_MAX_CHAR_UUID -> _thresholds.update { it.copy(temperatureMax = value) }
             SoilSenseConstants.TEMP_MIN_CHAR_UUID -> _thresholds.update { it.copy(temperatureMin = value) }
+        }
+    }
+
+    private fun updateLocalStringConfig(uuid: UUID, value: String) {
+        when (uuid) {
+            SoilSenseConstants.ALERT_SSID_UUID -> _thresholds.update { it.copy(wifiSsid = value) }
+            SoilSenseConstants.ALERT_PASS_UUID -> _thresholds.update { it.copy(wifiPassword = value) }
         }
     }
 }

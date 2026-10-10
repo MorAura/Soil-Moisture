@@ -10,7 +10,7 @@ temperature_sensor_handle_t temp_sensor = NULL;
 #define SLEEP_DURATION_SEC  60
 
 #include "driver/gpio.h"
-#define WAKEUP_GPIO_PIN GPIO_NUM_3
+#define WAKEUP_GPIO_PIN GPIO_NUM_5
 
 
 
@@ -56,7 +56,7 @@ void readData(){
   
 
   uint8_t moistureVal = map(moistureRead,MoistureMin,MoistureMax,100,0);
-  uint8_t lightVal = map(lightRead,0,4095,0,100);
+  uint8_t lightVal = map(lightRead,2200,4095,0,100);
   uint8_t tempVal = round(tempRead);
   
   Serial.print("Moist : ");
@@ -347,11 +347,29 @@ void StartBLE(){
   while (deviceConnected || currentMillis - previousMillis < 60000) {
     currentMillis = millis();
 
+    if (deviceConnected && !oldDeviceConnected) {
+      readData();
+      delay(100);
+      Serial.println("Sending Moisture Data...");
+      pMoistCharacteristic->setValue(moistureHist, sizeof(moistureHist));
+      pMoistCharacteristic->notify();
+      delay(100);  
+      Serial.println("Sending Temperature Data...");
+      pTempCharacteristic->setValue(tempHist, sizeof(tempHist));
+      pTempCharacteristic->notify();
+      delay(100);
+      Serial.println("Sending Light Data...");
+      pLightCharacteristic->setValue(lightHist, sizeof(lightHist));
+      pLightCharacteristic->notify();
+    }
+
     if (deviceConnected) {
-      previousMillis = currentMillis; // keep resetting the 60s timer while the device is connected
+      previousMillis = currentMillis; 
+      // keep resetting the 60s timer while the device is connected
       // so when it disconnects, it's a 60s timer
 
       // FOR TESTING  
+      /*
       readData(); 
 
       delay(500);
@@ -366,6 +384,7 @@ void StartBLE(){
       Serial.println("Sending Light Data...");
       pLightCharacteristic->setValue(lightHist, sizeof(lightHist));
       pLightCharacteristic->notify();
+      */
 
       oldDeviceConnected = deviceConnected;
     }

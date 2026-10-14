@@ -183,8 +183,6 @@ fun DashboardContent(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)

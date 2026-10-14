@@ -12,7 +12,7 @@ temperature_sensor_handle_t temp_sensor = NULL;
 #include "driver/gpio.h"
 #define WAKEUP_GPIO_PIN GPIO_NUM_5
 
-
+#include <Preferences.h>
 
 /*
 Connections:
@@ -44,6 +44,8 @@ bool tempHighAlert = false;
 
 bool deviceConnected = false;
 bool oldDeviceConnected = false;
+
+const unsigned long alertWifiTimeout = 5000;
 
 
 // Function to read new data, calculate values and add save it to memory. (Trigger alert if necessary).
@@ -120,9 +122,46 @@ void readData(){
 
 WiFiMulti WiFiMulti;
 
+Preferences wifiSetup;
+
+char wifi_ssid[33] = "";
+char wifi_pass[64] = "";
+
 // Store credentials in RTC memory so they persist through deep sleep
 RTC_DATA_ATTR char rtc_ssid[32] = "iPhone";
 RTC_DATA_ATTR char rtc_password[64] = "iphone123";
+
+void saveWifi(const String &ssid = "", const String &pass = "") {
+  wifiSetup.begin("wifi", false);
+  if (ssid != "") {
+    wifiSetup.putString("ssid", ssid);
+    ssid.toCharArray(wifi_ssid, sizeof(wifi_ssid));
+    Serial.print("ssid saved: " );
+    Serial.println(ssid);
+  } else {
+    Serial.print("ssid not saved");
+  }
+
+  if (pass != "") {
+    wifiSetup.putString("pass", pass);
+    pass.toCharArray(wifi_pass, sizeof(wifi_pass));
+    Serial.print("pass saved: ");
+    Serial.println(pass);
+  } else {
+    Serial.print("pass not saved" );
+  }
+
+  wifiSetup.end();
+}
+
+void loadWifi() {
+  wifiSetup.begin("wifi", true);
+  String ssid = wifiSetup.getString("ssid", "");
+  String pass = wifiSetup.getString("pass", "");
+  wifiSetup.end();
+  ssid.toCharArray(wifi_ssid, sizeof(wifi_ssid));
+  pass.toCharArray(wifi_pass, sizeof(wifi_pass));
+}
 
 
 // BLE setup code
@@ -216,6 +255,7 @@ class SharedCharacteristicCallbacks : public BLECharacteristicCallbacks {
       //rtc_ssid = rxValue.c_str();
       memcpy(rtc_ssid, rxValue.c_str(), rxValue.length());
       rtc_ssid[sizeof(rtc_ssid) - 1] = '\0';
+      saveWifi(rtc_ssid, "");
       pAlertSSIDCharacteristic->setValue(rtc_ssid);
     }
 
@@ -226,6 +266,7 @@ class SharedCharacteristicCallbacks : public BLECharacteristicCallbacks {
       //rtc_password = rxValue.c_str();
       memcpy(rtc_password, rxValue.c_str(), rxValue.length());
       rtc_password[sizeof(rtc_password) - 1] = '\0';
+      saveWifi("", rtc_password);
       pAlertPassCharacteristic->setValue(rtc_password);
     }
     
@@ -320,7 +361,7 @@ void StartBLE(){
                     );
   pAlertSSIDCharacteristic->addDescriptor(new BLE2902());
   pAlertSSIDCharacteristic->setCallbacks(myWriteCallbacks); // ATTACH CALLBACK
-  pAlertSSIDCharacteristic->setValue(&tempHigh, 1);
+  // pAlertSSIDCharacteristic->setValue(&tempHigh, 1);
 
   // Create the Characteristic Alert Pass Temperature
   pAlertPassCharacteristic = pService->createCharacteristic(
@@ -330,7 +371,7 @@ void StartBLE(){
                     );
   pAlertPassCharacteristic->addDescriptor(new BLE2902());
   pAlertPassCharacteristic->setCallbacks(myWriteCallbacks); // ATTACH CALLBACK
-  pAlertPassCharacteristic->setValue(&tempHigh, 1);
+  // pAlertPassCharacteristic->setValue(&tempHigh, 1);
   
 
   pService->start();
@@ -404,16 +445,21 @@ void StartBLE(){
 void sendAlert(){
   esp_wifi_start();
 
-  WiFiMulti.addAP(rtc_ssid, rtc_password);
+  loadWifi();
+  Serial.println("Loading Wifi Password");
+  Serial.print(wifi_ssid);
+  Serial.print(" | ");
+  Serial.println(wifi_pass);
+
+  WiFiMulti.addAP(wifi_ssid, wifi_pass);
 
   Serial.println();
   Serial.println();
   Serial.print("Waiting for WiFi... ");
 
-   unsigned long startTime = millis();
-  unsigned long timeoutDuration = 5000;
+  unsigned long startTime = millis();
 
-  while (WiFiMulti.run() != WL_CONNECTED && millis() - startTime < 5000) {
+  while (WiFiMulti.run() != WL_CONNECTED && millis() - startTime < alertWifiTimeout) {
     Serial.print(".");
     delay(500);
   }

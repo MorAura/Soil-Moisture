@@ -55,6 +55,8 @@ void readData(){
   ESP_ERROR_CHECK(temperature_sensor_get_celsius(temp_sensor, &tempRead));
   
 
+  Serial.print("MOITSTURE FUCKERY: ");
+  Serial.println(moistureRead);
   uint8_t moistureVal = map(moistureRead,MoistureMin,MoistureMax,100,0);
   uint8_t lightVal = map(lightRead,2200,4095,0,100);
   uint8_t tempVal = round(tempRead);
@@ -408,9 +410,17 @@ void sendAlert(){
   Serial.println();
   Serial.print("Waiting for WiFi... ");
 
-  while (WiFiMulti.run() != WL_CONNECTED) {
+   unsigned long startTime = millis();
+  unsigned long timeoutDuration = 5000;
+
+  while (WiFiMulti.run() != WL_CONNECTED && millis() - startTime < 5000) {
     Serial.print(".");
     delay(500);
+  }
+
+  if (WiFiMulti.run() != WL_CONNECTED) {
+    Serial.println("Wifi still not connected: prolly timed out");
+    return;
   }
 
   Serial.println("");

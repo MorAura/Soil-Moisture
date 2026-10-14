@@ -3,9 +3,13 @@ package com.moraura.soilapp.ui
 import android.app.Application
 import android.bluetooth.BluetoothDevice
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import com.moraura.soilapp.ble.BleManager
 import com.moraura.soilapp.ble.SoilSenseConstants
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.util.UUID
+import kotlin.time.Duration.Companion.milliseconds
 
 class SoilSenseViewModel(application: Application) : AndroidViewModel(application) {
     private val bleManager = BleManager(application)
@@ -49,7 +53,10 @@ class SoilSenseViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun updateWifiCredentials(ssid: String, pass: String) {
-        updateWifiSsid(ssid)
-        updateWifiPassword(pass)
+        viewModelScope.launch {
+            updateWifiSsid(ssid)
+            delay(200.milliseconds)
+            updateWifiPassword(pass)
+        }
     }
 }

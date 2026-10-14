@@ -25,7 +25,10 @@ import java.util.concurrent.TimeUnit
 import kotlin.jvm.java
 
 class NtfyListenerService : Service() {
-
+    val alertTopics = listOf(
+        "oiiaioiiiai",
+        "oiiaioiiiai2"
+    )
     private val client = OkHttpClient.Builder()
         .readTimeout(0, TimeUnit.MINUTES)
         .build()
@@ -42,9 +45,10 @@ class NtfyListenerService : Service() {
         val pending = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
 
         val notification = NotificationCompat.Builder(this, "alerts")
-            .setSmallIcon(android.R.drawable.ic_dialog_alert)
-            .setContentTitle(title)
-            .setContentText(message)
+            .setSmallIcon(R.drawable.rounded_water_drops_24)
+//            .setContentTitle(title)
+//            .setContentText(message)
+            .setContentTitle("$title: $message") // minified notification
             .setStyle(NotificationCompat.BigTextStyle().bigText(message))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pending)
@@ -65,12 +69,13 @@ class NtfyListenerService : Service() {
             try {
                 val data = JSONObject(message)
                 val deviceId = data.optString("id", "Unknown")
+                val deviceName = data.optString("name", "Unnamed Device")
                 val moistLow = data.optString("moistLow", "0")
                 val moistHigh = data.optString("moistHigh", "0")
                 val tempLow = data.optString("tempLow", "0")
                 val tempHigh = data.optString("tempHigh", "0")
 
-                val title = "Plant: $deviceId"
+                val title = "$deviceName"
 
                 if (moistLow != "0") {
                     sendEventNotification(title, "Low Moisture")
@@ -131,12 +136,12 @@ class NtfyListenerService : Service() {
             startForeground(1, notification)
         }
 
-        startListening()
+        startListening(alertTopics)
     }
 
-    private fun startListening() {
+    private fun startListening(topics: List<String>) {
         val request = Request.Builder()
-            .url("https://ntfy.sh/oiiaioiiiai/json")
+            .url("https://ntfy.sh/${topics.joinToString(",")}/json")
             .build()
 
         client.newCall(request).enqueue(object : Callback {

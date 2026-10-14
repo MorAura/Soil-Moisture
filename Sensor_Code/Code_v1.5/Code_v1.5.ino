@@ -98,7 +98,7 @@ void readData(){
   if (moistLowAlert || moistHighAlert || tempLowAlert || tempHighAlert){
     digitalWrite(LedPin,HIGH);
     Serial.println("Alert");
-    //sendAlert();
+    sendAlert();
 
   } else {
     digitalWrite(LedPin,LOW);
@@ -119,8 +119,8 @@ void readData(){
 WiFiMulti WiFiMulti;
 
 // Store credentials in RTC memory so they persist through deep sleep
-RTC_DATA_ATTR char rtc_ssid[32] = "Your_SSID";
-RTC_DATA_ATTR char rtc_password[64] = "Your_PASSWORD";
+RTC_DATA_ATTR char rtc_ssid[32] = "iPhone";
+RTC_DATA_ATTR char rtc_password[64] = "iphone123";
 
 
 // BLE setup code

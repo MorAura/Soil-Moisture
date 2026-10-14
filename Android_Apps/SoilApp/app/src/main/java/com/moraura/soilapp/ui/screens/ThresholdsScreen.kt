@@ -6,6 +6,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Computer
 import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.Thermostat
 import androidx.compose.material.icons.rounded.Visibility
@@ -23,11 +24,12 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.moraura.soilapp.data.model.SoilSenseThresholds
 import com.moraura.soilapp.ui.SoilSenseViewModel
 import com.moraura.soilapp.ui.theme.SoilAppTheme
+import java.time.temporal.ValueRange
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ThresholdsScreen(
     viewModel: SoilSenseViewModel,
@@ -35,6 +37,30 @@ fun ThresholdsScreen(
 ) {
     val thresholds by viewModel.thresholds.collectAsState()
 
+    ThresholdsContent(
+        thresholds = thresholds,
+        onUpdateMoistureMin = { viewModel.updateMoistureMin(it) },
+        onUpdateMoistureMax = { viewModel.updateMoistureMax(it) },
+        onUpdateTemperatureMin = { viewModel.updateTemperatureMin(it) },
+        onUpdateTemperatureMax = { viewModel.updateTemperatureMax(it) },
+        onUpdateWifiCredentials = { ssid, password ->
+            viewModel.updateWifiCredentials(ssid, password)
+        },
+        onNavigateBack = onNavigateBack
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ThresholdsContent(
+    thresholds: SoilSenseThresholds,
+    onUpdateMoistureMin: (Int) -> Unit,
+    onUpdateMoistureMax: (Int) -> Unit,
+    onUpdateTemperatureMin: (Int) -> Unit,
+    onUpdateTemperatureMax: (Int) -> Unit,
+    onUpdateWifiCredentials: (ssid: String, password: String) -> Unit,
+    onNavigateBack: () -> Unit
+) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -62,8 +88,8 @@ fun ThresholdsScreen(
                 max = thresholds.moistureMax,
                 range = 0f..100f,
                 unit = "%",
-                onMinChange = { viewModel.updateMoistureMin(it) },
-                onMaxChange = { viewModel.updateMoistureMax(it) }
+                onMinChange = onUpdateMoistureMin,
+                onMaxChange = onUpdateMoistureMax
             )
 
             ThresholdCategory(
@@ -73,17 +99,63 @@ fun ThresholdsScreen(
                 max = thresholds.temperatureMax,
                 range = 0f..50f,
                 unit = "°C",
-                onMinChange = { viewModel.updateTemperatureMin(it) },
-                onMaxChange = { viewModel.updateTemperatureMax(it) }
+                onMinChange = onUpdateTemperatureMin,
+                onMaxChange = onUpdateTemperatureMax
+            )
+
+            DeviceNameCategory(
+                deviceName = thresholds.deviceName
             )
 
             WifiConfigCategory(
                 ssid = thresholds.wifiSsid,
                 password = thresholds.wifiPassword,
-                onSaveWifi = { ssid, password ->
-                    viewModel.updateWifiCredentials(ssid, password)
-                }
+                onSaveWifi = onUpdateWifiCredentials
             )
+        }
+    }
+}
+
+@Composable
+fun DeviceNameCategory(
+    deviceName: String
+) {
+    var nameInput by remember(deviceName) { mutableStateOf(deviceName) }
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Rounded.Computer,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Device Setup",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            OutlinedTextField(
+                value = nameInput,
+                onValueChange = { nameInput = it },
+                label = { Text("Device Name") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = { },
+                modifier = Modifier.align(Alignment.End)
+            ) {
+//                Icon(Icons.Rounded.Save, contentDescription = null)
+//                Spacer(modifier = Modifier.width(8.dp))
+                Text("Update")
+            }
         }
     }
 }
@@ -195,6 +267,25 @@ fun ThresholdCategory(
     }
 }
 
+//@Composable
+//fun ThresholdRange(
+//    label: String,
+//    min: Int,
+//    range: ClosedFloatingPointRange<Float>,
+//    onValueChange: (Int) -> Unit
+//) {
+//    RangeSlider(
+//        value = min.toFloat()..max.toFloat(),
+//        onValueChange = { newRange ->
+//            val newMin = newRange.start.roundToInt()
+//            val newMax = newRange.endInclusive.roundToInt()
+//            if (newMin != min) onMinChange(newMin)
+//            if (newMax != max) onMaxChange(newMax)
+//        },
+//        valueRange = range,
+//        modifier = Modifier.fillMaxWidth()
+//    )
+//}
 @Composable
 fun ThresholdSlider(
     label: String,
@@ -229,21 +320,27 @@ fun ThresholdSlider(
     }
 }
 
-@Preview(showBackground = true)
+@OptIn(ExperimentalMaterial3Api::class)
+@Preview(showBackground = true, device = "spec:width=411dp,height=891dp")
 @Composable
 fun ThresholdsScreenPreview() {
     SoilAppTheme {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            ThresholdCategory(
-                "Moisture Thresholds",
-                Icons.Rounded.WaterDrop,
-                30, 70, 0f..100f, "%", {}, {}
-            )
-            WifiConfigCategory(
-                ssid = "MyHomeWiFi",
-                password = "Password123",
-                onSaveWifi = { _, _ -> }
-            )
-        }
+        ThresholdsContent(
+            thresholds = SoilSenseThresholds(
+                moistureMin = 30,
+                moistureMax = 70,
+                temperatureMin = 15,
+                temperatureMax = 35,
+                wifiSsid = "MyHomeWiFi",
+                wifiPassword = "Password123",
+                deviceName = "preview"
+            ),
+            onUpdateMoistureMin = {},
+            onUpdateMoistureMax = {},
+            onUpdateTemperatureMin = {},
+            onUpdateTemperatureMax = {},
+            onUpdateWifiCredentials = { _, _ -> },
+            onNavigateBack = {}
+        )
     }
 }

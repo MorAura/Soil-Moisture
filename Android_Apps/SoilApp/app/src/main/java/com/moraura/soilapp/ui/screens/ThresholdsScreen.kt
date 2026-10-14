@@ -27,7 +27,6 @@ import androidx.compose.ui.unit.dp
 import com.moraura.soilapp.data.model.SoilSenseThresholds
 import com.moraura.soilapp.ui.SoilSenseViewModel
 import com.moraura.soilapp.ui.theme.SoilAppTheme
-import java.time.temporal.ValueRange
 import kotlin.math.roundToInt
 
 @Composable
@@ -236,6 +235,9 @@ fun ThresholdCategory(
     onMinChange: (Int) -> Unit,
     onMaxChange: (Int) -> Unit
 ) {
+    var localMin by remember(min) { mutableFloatStateOf(min.toFloat()) }
+    var localMax by remember(max) { mutableFloatStateOf(max.toFloat()) }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
@@ -249,75 +251,62 @@ fun ThresholdCategory(
             
             Spacer(modifier = Modifier.height(24.dp))
             
-            ThresholdSlider(
-                label = "Minimum $unit",
-                value = min,
-                range = range,
-                onValueChange = onMinChange
-            )
+            // Minimum Slider
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = "Minimum $unit", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        text = "${localMin.roundToInt()}",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                
+                Slider(
+                    value = localMin,
+                    onValueChange = { newValue ->
+                        localMin = newValue.coerceAtMost(localMax)
+                    },
+                    onValueChangeFinished = { onMinChange(localMin.roundToInt()) },
+                    valueRange = range,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
             
             Spacer(modifier = Modifier.height(24.dp))
             
-            ThresholdSlider(
-                label = "Maximum $unit",
-                value = max,
-                range = range,
-                onValueChange = onMaxChange
-            )
+            // Maximum Slider
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = "Maximum $unit", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        text = "${localMax.roundToInt()}",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                
+                Slider(
+                    value = localMax,
+                    onValueChange = { newValue ->
+                        localMax = newValue.coerceAtLeast(localMin)
+                    },
+                    onValueChangeFinished = { onMaxChange(localMax.roundToInt()) },
+                    valueRange = range,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
-    }
-}
-
-//@Composable
-//fun ThresholdRange(
-//    label: String,
-//    min: Int,
-//    range: ClosedFloatingPointRange<Float>,
-//    onValueChange: (Int) -> Unit
-//) {
-//    RangeSlider(
-//        value = min.toFloat()..max.toFloat(),
-//        onValueChange = { newRange ->
-//            val newMin = newRange.start.roundToInt()
-//            val newMax = newRange.endInclusive.roundToInt()
-//            if (newMin != min) onMinChange(newMin)
-//            if (newMax != max) onMaxChange(newMax)
-//        },
-//        valueRange = range,
-//        modifier = Modifier.fillMaxWidth()
-//    )
-//}
-@Composable
-fun ThresholdSlider(
-    label: String,
-    value: Int,
-    range: ClosedFloatingPointRange<Float>,
-    onValueChange: (Int) -> Unit
-) {
-    var sliderValue by remember(value) { mutableFloatStateOf(value.toFloat()) }
-
-    Column {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(text = label, style = MaterialTheme.typography.bodyLarge)
-            Text(
-                text = "${sliderValue.roundToInt()}",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Black,
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
-        
-        Slider(
-            value = sliderValue,
-            onValueChange = { sliderValue = it },
-            onValueChangeFinished = { onValueChange(sliderValue.roundToInt()) },
-            valueRange = range,
-            modifier = Modifier.fillMaxWidth()
-        )
     }
 }
 

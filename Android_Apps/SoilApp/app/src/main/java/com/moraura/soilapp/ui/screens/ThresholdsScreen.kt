@@ -7,7 +7,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Computer
-import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.Thermostat
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
@@ -103,6 +102,8 @@ fun ThresholdsContent(
                 onMaxChange = onUpdateTemperatureMax
             )
 
+            HorizontalDivider()
+
             DeviceNameCategory(
                 deviceName = thresholds.deviceName
             )
@@ -123,7 +124,7 @@ fun DeviceNameCategory(
     var nameInput by remember(deviceName) { mutableStateOf(deviceName) }
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -154,7 +155,7 @@ fun DeviceNameCategory(
             ) {
 //                Icon(Icons.Rounded.Save, contentDescription = null)
 //                Spacer(modifier = Modifier.width(8.dp))
-                Text("Update")
+                Text("Rename Device")
             }
         }
     }
@@ -172,7 +173,7 @@ fun WifiConfigCategory(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -216,9 +217,7 @@ fun WifiConfigCategory(
                 onClick = { onSaveWifi(ssidInput, passwordInput) },
                 modifier = Modifier.align(Alignment.End)
             ) {
-                Icon(Icons.Rounded.Save, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Save WiFi Credentials")
+                Text("Update")
             }
         }
     }
@@ -241,7 +240,7 @@ fun ThresholdCategory(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {

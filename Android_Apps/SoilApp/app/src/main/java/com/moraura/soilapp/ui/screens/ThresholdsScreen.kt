@@ -235,8 +235,9 @@ fun ThresholdCategory(
     onMinChange: (Int) -> Unit,
     onMaxChange: (Int) -> Unit
 ) {
-    var localMin by remember(min) { mutableFloatStateOf(min.toFloat()) }
-    var localMax by remember(max) { mutableFloatStateOf(max.toFloat()) }
+    var rangeState by remember(min, max) {
+        mutableStateOf(min.toFloat()..max.toFloat())
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -249,63 +250,58 @@ fun ThresholdCategory(
                 Text(text = title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             }
             
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            // Minimum Slider
-            Column {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(text = "Minimum $unit", style = MaterialTheme.typography.bodyLarge)
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
                     Text(
-                        text = "${localMin.roundToInt()}",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Black,
+                        text = "Minimum",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "${rangeState.start.roundToInt()}$unit",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
-                
-                Slider(
-                    value = localMin,
-                    onValueChange = { newValue ->
-                        localMin = newValue.coerceAtMost(localMax)
-                    },
-                    onValueChangeFinished = { onMinChange(localMin.roundToInt()) },
-                    valueRange = range,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            // Maximum Slider
-            Column {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(text = "Maximum $unit", style = MaterialTheme.typography.bodyLarge)
+
+                Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = "${localMax.roundToInt()}",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Black,
+                        text = "Maximum",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "${rangeState.endInclusive.roundToInt()}$unit",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
-                
-                Slider(
-                    value = localMax,
-                    onValueChange = { newValue ->
-                        localMax = newValue.coerceAtLeast(localMin)
-                    },
-                    onValueChangeFinished = { onMaxChange(localMax.roundToInt()) },
-                    valueRange = range,
-                    modifier = Modifier.fillMaxWidth()
-                )
             }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            RangeSlider(
+                value = rangeState,
+                onValueChange = { newRange ->
+                    rangeState = newRange
+                },
+                onValueChangeFinished = {
+                    val newMin = rangeState.start.roundToInt()
+                    val newMax = rangeState.endInclusive.roundToInt()
+                    if (newMin != min) onMinChange(newMin)
+                    if (newMax != max) onMaxChange(newMax)
+                },
+                valueRange = range,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }

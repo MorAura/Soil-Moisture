@@ -2,8 +2,10 @@
 #define LedPin 8
 
 // Internal temp config
+/*
 #include <driver/temperature_sensor.h>
 temperature_sensor_handle_t temp_sensor = NULL;
+*/
 
 #include "esp_sleep.h"
 #define uS_TO_S_FACTOR 1000000ULL   // Conversion factor for micro seconds to seconds
@@ -16,10 +18,9 @@ temperature_sensor_handle_t temp_sensor = NULL;
 
 /*
 Connections:
+  Thermistor - A4
   Moisture Sensor - A3
   Light Sensor - A2
-
-  Need to finalize temperature measurement but use internal temp for testing
 */
 
 // Determined experimentally
@@ -51,17 +52,25 @@ const unsigned long alertWifiTimeout = 5000;
 // Function to read new data, calculate values and add save it to memory. (Trigger alert if necessary).
 void readData(){
 
+  float tempRead = analogRead(A4);
   int moistureRead = analogRead(A3);
   int lightRead = analogRead(A2);
-  float tempRead = 0;
-  ESP_ERROR_CHECK(temperature_sensor_get_celsius(temp_sensor, &tempRead));
+
+
+  // ESP_ERROR_CHECK(temperature_sensor_get_celsius(temp_sensor, &tempRead));
+  
+  float Beta = 3950;
+  float thermistor_voltage = 3.3/4540*tempRead;
+  float thermistor_resistance = 12000/(3.3-thermistor_voltage)*thermistor_voltage;
+  float tempVal_float = 1/(1/298.15 + log(thermistor_resistance/10000)/Beta) - 275.15;
+  
   
 
   Serial.print("MOITSTURE FUCKERY: ");
   Serial.println(moistureRead);
   uint8_t moistureVal = map(moistureRead,MoistureMin,MoistureMax,100,0);
   uint8_t lightVal = map(lightRead,2200,4095,0,100);
-  uint8_t tempVal = round(tempRead);
+  uint8_t tempVal = round(tempVal_float);
   
   Serial.print("Moist : ");
   Serial.print(moistureRead);
@@ -392,15 +401,15 @@ void StartBLE(){
 
     if (deviceConnected && !oldDeviceConnected) {
       readData();
-      delay(100);
+      delay(300);
       Serial.println("Sending Moisture Data...");
       pMoistCharacteristic->setValue(moistureHist, sizeof(moistureHist));
       pMoistCharacteristic->notify();
-      delay(100);  
+      delay(300);  
       Serial.println("Sending Temperature Data...");
       pTempCharacteristic->setValue(tempHist, sizeof(tempHist));
       pTempCharacteristic->notify();
-      delay(100);
+      delay(300);
       Serial.println("Sending Light Data...");
       pLightCharacteristic->setValue(lightHist, sizeof(lightHist));
       pLightCharacteristic->notify();
@@ -539,7 +548,8 @@ void setup(){
   Serial.begin(115200);
   Serial.println("Starting Sensor");
 
-  // Setup adc pins for moisture and light level as inputs
+  // Setup adc pins for moisture, temperature and light level as inputs
+  pinMode(A4,INPUT);
   pinMode(A3,INPUT);
   pinMode(A2,INPUT);
 
@@ -549,10 +559,6 @@ void setup(){
   delay(500);
   digitalWrite(LedPin,LOW);
 
-  // Setup internal temperature sensor
-  temperature_sensor_config_t temp_sensor_config = TEMPERATURE_SENSOR_CONFIG_DEFAULT(-10, 80);
-  ESP_ERROR_CHECK(temperature_sensor_install(&temp_sensor_config, &temp_sensor));
-  ESP_ERROR_CHECK(temperature_sensor_enable(temp_sensor));
   delay(5000);
 
   // Check for wakeup cause

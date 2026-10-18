@@ -33,10 +33,10 @@ RTC_DATA_ATTR uint8_t lightHist[168] = {0};
 RTC_DATA_ATTR uint8_t tempHist[168] = {0};
 
 // Configured Alert Values
-uint8_t moistHigh = 100;
-uint8_t moistLow = 0;
-uint8_t tempHigh = 100;
-uint8_t tempLow = 0;
+RTC_DATA_ATTR uint8_t moistHigh = 100;
+RTC_DATA_ATTR uint8_t moistLow = 0;
+RTC_DATA_ATTR uint8_t tempHigh = 100;
+RTC_DATA_ATTR uint8_t tempLow = 0;
 
 bool moistLowAlert = false;
 bool moistHighAlert = false;
@@ -261,6 +261,7 @@ class SharedCharacteristicCallbacks : public BLECharacteristicCallbacks {
       Serial.print("Alert SSID Characteristic written: ");
       String rxValue = pCharacteristic->getValue();
       Serial.println(rxValue.c_str());
+      memset(rtc_ssid, 0, 32);
       //rtc_ssid = rxValue.c_str();
       memcpy(rtc_ssid, rxValue.c_str(), rxValue.length());
       rtc_ssid[sizeof(rtc_ssid) - 1] = '\0';
@@ -272,6 +273,7 @@ class SharedCharacteristicCallbacks : public BLECharacteristicCallbacks {
       Serial.print("Alert Pass Characteristic written: ");
       String rxValue = pCharacteristic->getValue();
       Serial.println(rxValue.c_str());
+      memset(rtc_password, 0, 64);
       //rtc_password = rxValue.c_str();
       memcpy(rtc_password, rxValue.c_str(), rxValue.length());
       rtc_password[sizeof(rtc_password) - 1] = '\0';

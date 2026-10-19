@@ -76,23 +76,36 @@ fun DashboardContent(
             containerColor = Color.Transparent,
             topBar = {
                 TopAppBar(
+                    expandedHeight = 80.dp,
                     title = {
                         Text(
                             text = "Dashboard",
-//                    fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.Medium,
                         )
                     },
                     navigationIcon = {
-                        IconButton(onClick = onNavigateBack) {
+                        FilledTonalIconButton(
+                            modifier = Modifier
+                                .padding(8.dp)   // distance from left edge
+                                .size(48.dp),
+                            onClick = onNavigateBack,
+                            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerLowest.copy(0.8f),
+                                contentColor = MaterialTheme.colorScheme.onSurface,
+                            ),
+                        ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back"
+                                contentDescription = "Back",
+//                                modifier = Modifier.size(24.dp)
                             )
                         }
                     },
                     actions = {
-                        TextButton(onClick = onDisconnect) {
-                            Text("Disconnect", color = MaterialTheme.colorScheme.error)
+                        if (connectionState == ConnectionState.Connected) {
+                            TextButton(onClick = onDisconnect, modifier = Modifier.padding(end = 8.dp)) {
+                                Text("Disconnect", color = MaterialTheme.colorScheme.error)
+                            }
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(

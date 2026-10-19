@@ -232,7 +232,7 @@ void realtimeRead(){
   float tempVal_float = 1/(1/298.15 + log(thermistor_resistance/10000)/Beta) - 275.15;
   
   uint8_t moistureVal = map(moistureRead,MoistureMin,MoistureMax,100,0);
-  uint8_t lightVal = map(lightRead,2200,4095,0,100);
+  uint8_t lightVal = map(lightRead,1500,4095,0,100);
   uint8_t tempVal = round(tempVal_float);
   
   Serial.print("Moist : ");
@@ -639,7 +639,7 @@ void setup(){
   if (wakeup_reason == ESP_SLEEP_WAKEUP_TIMER) {
     Serial.println("Woke up from timer");
     readData();
-  } else if (wakeup_reason == ESP_SLEEP_WAKEUP_EXT0) {
+  } else if (wakeup_reason == ESP_SLEEP_WAKEUP_GPIO) {
     Serial.println("Woke up from PIN");
     StartBLE();
   } else {

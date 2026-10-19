@@ -48,76 +48,6 @@ bool oldDeviceConnected = false;
 
 const unsigned long alertWifiTimeout = 5000;
 
-
-// Function to read new data, calculate values and add save it to memory. (Trigger alert if necessary).
-void readData(){
-
-  float tempRead = analogRead(A4);
-  int moistureRead = analogRead(A3);
-  int lightRead = analogRead(A2);
-
-
-  // ESP_ERROR_CHECK(temperature_sensor_get_celsius(temp_sensor, &tempRead));
-  
-  float Beta = 3950;
-  float thermistor_voltage = 3.3/4540*tempRead;
-  float thermistor_resistance = 12000/(3.3-thermistor_voltage)*thermistor_voltage;
-  float tempVal_float = 1/(1/298.15 + log(thermistor_resistance/10000)/Beta) - 275.15;
-  
-  uint8_t moistureVal = map(moistureRead,MoistureMin,MoistureMax,100,0);
-  uint8_t lightVal = map(lightRead,2200,4095,0,100);
-  uint8_t tempVal = round(tempVal_float);
-  
-  Serial.print("Moist : ");
-  Serial.print(moistureRead);
-  Serial.print(" | Light : ");
-  Serial.print(lightRead);
-  Serial.print(" | Temp : ");
-  Serial.println(tempRead);
-
-  for(int i = 1; i < 168; i++){
-
-    moistureHist[i-1] = moistureHist[i];
-    lightHist[i-1] = lightHist[i];
-    tempHist[i-1] = tempHist[i];
-
-  }
-
-  if (moistureVal < moistLow) {
-      moistLowAlert = true;
-  } else {
-      moistLowAlert = false;
-  }
-  if (moistureVal > moistHigh) {
-      moistHighAlert = true;
-  } else {
-      moistHighAlert = false;
-  }
-  if (tempVal < tempLow) {
-      tempLowAlert = true;
-  } else {
-      tempLowAlert = false;
-  }
-  if (tempVal > tempHigh) {
-      tempHighAlert = true;
-  } else {
-      tempHighAlert = false;
-  }
-
-  if (moistLowAlert || moistHighAlert || tempLowAlert || tempHighAlert){
-    digitalWrite(LedPin,HIGH);
-    Serial.println("Alert");
-    sendAlert();
-
-  } else {
-    digitalWrite(LedPin,LOW);
-  }
-
-  moistureHist[167] = moistureVal;
-  lightHist[167] = lightVal;
-  tempHist[167] = tempVal;
-}
-
 // WiFi setup code
 
 #include "esp_mac.h"
@@ -182,6 +112,9 @@ BLECharacteristic* pMoistCharacteristic = NULL;
 BLECharacteristic* pTempCharacteristic = NULL;
 BLECharacteristic* pLightCharacteristic = NULL;
 
+BLECharacteristic* pMoistRTCharacteristic = NULL;
+BLECharacteristic* pTempRTCharacteristic = NULL;
+BLECharacteristic* pLightRTCharacteristic = NULL;
 
 BLECharacteristic* pMoistMaxCharacteristic = NULL;
 BLECharacteristic* pMoistMinCharacteristic = NULL;
@@ -197,6 +130,10 @@ BLECharacteristic* pAlertPassCharacteristic = NULL;
 #define MOIST_CHAR_UUID     "48ea775b-a582-4b00-b1b9-cf789c55887f"
 #define TEMP_CHAR_UUID      "2b2c8a8b-25cd-4804-a2de-b3a27c64758c"
 #define LIGHT_CHAR_UUID     "18ad5c89-a11b-4a1e-b655-6ee4c820ce4a"
+
+#define MOISTRT_CHAR_UUID     "a6043c33-8c01-484a-aad4-f26c80b73e4f"
+#define TEMPRT_CHAR_UUID      "f0b4ca2b-4510-4253-afac-0cb8582f5bc4"
+#define LIGHTRT_CHAR_UUID     "fb7437e8-4283-4583-82c8-87dce40b8876"
 
 #define MOIST_MAX_CHAR_UUID "4711d9f9-c38e-4f0f-9ef9-4e89e1f88391"
 #define MOIST_MIN_CHAR_UUID "7470e5d5-00ee-49a4-87ba-88ad813b287b"
@@ -280,6 +217,116 @@ class SharedCharacteristicCallbacks : public BLECharacteristicCallbacks {
   }
 };
 
+// Function to update realtime readings.
+void realtimeRead(){
+
+  float tempRead = analogRead(A4);
+  int moistureRead = analogRead(A3);
+  int lightRead = analogRead(A2);
+
+  // ESP_ERROR_CHECK(temperature_sensor_get_celsius(temp_sensor, &tempRead));
+  
+  float Beta = 3950;
+  float thermistor_voltage = 3.3/4540*tempRead;
+  float thermistor_resistance = 12000/(3.3-thermistor_voltage)*thermistor_voltage;
+  float tempVal_float = 1/(1/298.15 + log(thermistor_resistance/10000)/Beta) - 275.15;
+  
+  uint8_t moistureVal = map(moistureRead,MoistureMin,MoistureMax,100,0);
+  uint8_t lightVal = map(lightRead,2200,4095,0,100);
+  uint8_t tempVal = round(tempVal_float);
+  
+  Serial.print("Moist : ");
+  Serial.print(moistureRead);
+  Serial.print(" | Light : ");
+  Serial.print(lightRead);
+  Serial.print(" | Temp : ");
+  Serial.println(tempRead);
+
+  Serial.println("Sending Moisture Data...");
+  pMoistRTCharacteristic->setValue(&moistureVal, sizeof(moistureVal));
+  pMoistRTCharacteristic->notify();
+  delay(100);  
+  Serial.println("Sending Temperature Data...");
+  pTempRTCharacteristic->setValue(&tempVal, sizeof(tempVal));
+  pTempRTCharacteristic->notify();
+  delay(100);
+  Serial.println("Sending Light Data...");
+  pLightRTCharacteristic->setValue(&lightVal, sizeof(lightVal));
+  pLightRTCharacteristic->notify();
+  delay(100);
+
+}
+
+// Function to read new data, calculate values and add save it to memory. (Trigger alert if necessary).
+void readData(){
+
+  float tempRead = analogRead(A4);
+  int moistureRead = analogRead(A3);
+  int lightRead = analogRead(A2);
+
+
+  // ESP_ERROR_CHECK(temperature_sensor_get_celsius(temp_sensor, &tempRead));
+  
+  float Beta = 3950;
+  float thermistor_voltage = 3.3/4540*tempRead;
+  float thermistor_resistance = 12000/(3.3-thermistor_voltage)*thermistor_voltage;
+  float tempVal_float = 1/(1/298.15 + log(thermistor_resistance/10000)/Beta) - 275.15;
+  
+  uint8_t moistureVal = map(moistureRead,MoistureMin,MoistureMax,100,0);
+  uint8_t lightVal = map(lightRead,2200,4095,0,100);
+  uint8_t tempVal = round(tempVal_float);
+  
+  Serial.print("Moist : ");
+  Serial.print(moistureRead);
+  Serial.print(" | Light : ");
+  Serial.print(lightRead);
+  Serial.print(" | Temp : ");
+  Serial.println(tempRead);
+
+  for(int i = 1; i < 168; i++){
+
+    moistureHist[i-1] = moistureHist[i];
+    lightHist[i-1] = lightHist[i];
+    tempHist[i-1] = tempHist[i];
+
+  }
+
+  if (moistureVal < moistLow) {
+      moistLowAlert = true;
+  } else {
+      moistLowAlert = false;
+  }
+  if (moistureVal > moistHigh) {
+      moistHighAlert = true;
+  } else {
+      moistHighAlert = false;
+  }
+  if (tempVal < tempLow) {
+      tempLowAlert = true;
+  } else {
+      tempLowAlert = false;
+  }
+  if (tempVal > tempHigh) {
+      tempHighAlert = true;
+  } else {
+      tempHighAlert = false;
+  }
+
+  if (moistLowAlert || moistHighAlert || tempLowAlert || tempHighAlert){
+    digitalWrite(LedPin,HIGH);
+    Serial.println("Alert");
+    sendAlert();
+
+  } else {
+    digitalWrite(LedPin,LOW);
+  }
+
+  moistureHist[167] = moistureVal;
+  lightHist[167] = lightVal;
+  tempHist[167] = tempVal;
+}
+
+
 SharedCharacteristicCallbacks* myWriteCallbacks = new SharedCharacteristicCallbacks();
 
 void StartBLE(){
@@ -318,6 +365,31 @@ void StartBLE(){
                       BLECharacteristic::PROPERTY_NOTIFY
                     );
   pLightCharacteristic->addDescriptor(new BLE2902());
+
+   // Create the Characteristic Moisture (realtime)
+  pMoistRTCharacteristic = pService->createCharacteristic(
+                      MOISTRT_CHAR_UUID,
+                      BLECharacteristic::PROPERTY_READ |
+                      BLECharacteristic::PROPERTY_NOTIFY
+                    );
+  pMoistRTCharacteristic->addDescriptor(new BLE2902());
+
+  // Create the Characteristic Temperature (realtime)
+  pTempRTCharacteristic = pService->createCharacteristic(
+                      TEMPRT_CHAR_UUID,
+                      BLECharacteristic::PROPERTY_READ |
+                      BLECharacteristic::PROPERTY_NOTIFY
+                    );
+  pTempRTCharacteristic->addDescriptor(new BLE2902());
+  
+  // Create the Characteristic Light (realtime)
+  pLightRTCharacteristic = pService->createCharacteristic(
+                      LIGHTRT_CHAR_UUID,
+                      BLECharacteristic::PROPERTY_READ |
+                      BLECharacteristic::PROPERTY_NOTIFY
+                    );
+  pLightRTCharacteristic->addDescriptor(new BLE2902());
+
 
   // Create the Characteristic Max moisture
   pMoistMaxCharacteristic = pService->createCharacteristic(
@@ -435,6 +507,9 @@ void StartBLE(){
       pLightCharacteristic->setValue(lightHist, sizeof(lightHist));
       pLightCharacteristic->notify();
       */
+
+      // Update real time readings
+      realtimeRead();
 
       oldDeviceConnected = deviceConnected;
     }
@@ -564,9 +639,12 @@ void setup(){
   if (wakeup_reason == ESP_SLEEP_WAKEUP_TIMER) {
     Serial.println("Woke up from timer");
     readData();
-  } else {
+  } else if (wakeup_reason == ESP_SLEEP_WAKEUP_EXT0) {
     Serial.println("Woke up from PIN");
     StartBLE();
+  } else {
+    Serial.println("First boot");
+    readData();
   }
 
   // Setup wake pin and sleep timer

@@ -23,6 +23,7 @@ import com.moraura.soilapp.data.model.ConnectionState
 import com.moraura.soilapp.data.model.SoilSenseMetrics
 import com.moraura.soilapp.data.model.SoilSenseThresholds
 import com.moraura.soilapp.ui.SoilSenseViewModel
+import com.moraura.soilapp.ui.components.TopGradientScreen
 import com.moraura.soilapp.ui.theme.SoilAppTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -70,20 +71,7 @@ fun DashboardContent(
     onNavigateBack: () -> Unit,
 ) {
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.primaryContainer,
-                        MaterialTheme.colorScheme.background, // Fades into your base theme
-                        MaterialTheme.colorScheme.background, // Top tint
-                    )
-                )
-            )
-    ) {
-
+    TopGradientScreen() {
         Scaffold(
             containerColor = Color.Transparent,
             topBar = {

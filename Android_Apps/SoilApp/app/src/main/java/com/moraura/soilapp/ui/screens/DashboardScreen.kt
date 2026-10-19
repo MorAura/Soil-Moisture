@@ -76,7 +76,7 @@ fun DashboardContent(
     onUpdateWifiCredentials: (String, String) -> Unit,
     onNavigateBack: () -> Unit,
 ) {
-    var selectedTabIndex by remember { mutableIntStateOf(2) }
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabs = listOf("Live", "History", "Settings") //
 
     TopGradientScreen {
@@ -158,7 +158,7 @@ fun DashboardContent(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+//                Spacer(modifier = Modifier.height(16.dp))
 
                 Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(16.dp)) {
                     when (selectedTabIndex) {

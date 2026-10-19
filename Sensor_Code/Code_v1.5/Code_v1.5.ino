@@ -27,6 +27,9 @@ Connections:
 #define MoistureMax 3130
 #define MoistureMin 1270
 
+#define LightMax 4095
+#define LightMin 1500
+
 // To store old data
 RTC_DATA_ATTR uint8_t moistureHist[168] = {0};
 RTC_DATA_ATTR uint8_t lightHist[168] = {0};
@@ -232,7 +235,7 @@ void realtimeRead(){
   float tempVal_float = 1/(1/298.15 + log(thermistor_resistance/10000)/Beta) - 275.15;
   
   uint8_t moistureVal = map(moistureRead,MoistureMin,MoistureMax,100,0);
-  uint8_t lightVal = map(lightRead,1500,4095,0,100);
+  uint8_t lightVal = map(lightRead,LightMin,LightMax,0,100);
   uint8_t tempVal = round(tempVal_float);
   
   Serial.print("Moist : ");
@@ -245,15 +248,15 @@ void realtimeRead(){
   Serial.println("Sending Moisture Data...");
   pMoistRTCharacteristic->setValue(&moistureVal, sizeof(moistureVal));
   pMoistRTCharacteristic->notify();
-  delay(100);  
+  delay(300);  
   Serial.println("Sending Temperature Data...");
   pTempRTCharacteristic->setValue(&tempVal, sizeof(tempVal));
   pTempRTCharacteristic->notify();
-  delay(100);
+  delay(300);
   Serial.println("Sending Light Data...");
   pLightRTCharacteristic->setValue(&lightVal, sizeof(lightVal));
   pLightRTCharacteristic->notify();
-  delay(100);
+  delay(300);
 
 }
 
@@ -273,7 +276,7 @@ void readData(){
   float tempVal_float = 1/(1/298.15 + log(thermistor_resistance/10000)/Beta) - 275.15;
   
   uint8_t moistureVal = map(moistureRead,MoistureMin,MoistureMax,100,0);
-  uint8_t lightVal = map(lightRead,2200,4095,0,100);
+  uint8_t lightVal = map(lightRead,LightMin,LightMax,0,100);
   uint8_t tempVal = round(tempVal_float);
   
   Serial.print("Moist : ");

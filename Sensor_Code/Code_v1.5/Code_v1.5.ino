@@ -64,10 +64,6 @@ void readData(){
   float thermistor_resistance = 12000/(3.3-thermistor_voltage)*thermistor_voltage;
   float tempVal_float = 1/(1/298.15 + log(thermistor_resistance/10000)/Beta) - 275.15;
   
-  
-
-  Serial.print("MOITSTURE FUCKERY: ");
-  Serial.println(moistureRead);
   uint8_t moistureVal = map(moistureRead,MoistureMin,MoistureMax,100,0);
   uint8_t lightVal = map(lightRead,2200,4095,0,100);
   uint8_t tempVal = round(tempVal_float);

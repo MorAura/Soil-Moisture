@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.moraura.soilapp.data.model.SoilSenseMetrics
 import com.moraura.soilapp.ui.SoilSenseViewModel
 import com.moraura.soilapp.ui.theme.SoilAppTheme
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
@@ -45,35 +46,46 @@ fun HistoryScreen(
             )
         }
     ) { padding ->
-        Column(
+        HistoryContent(
+            metrics = metrics,
             modifier = Modifier
                 .padding(padding)
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-            ChartSection(
-                title = "Soil Moisture",
-                data = metrics.moisture,
-                unit = "%",
-                color = MaterialTheme.colorScheme.primary
-            )
+                .padding(16.dp)
+        )
+    }
+}
 
-            ChartSection(
-                title = "Temperature",
-                data = metrics.temperature,
-                unit = "°C",
-                color = MaterialTheme.colorScheme.secondary
-            )
+@Composable
+fun HistoryContent(
+    metrics: SoilSenseMetrics,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
+        ChartSection(
+            title = "Soil Moisture",
+            data = metrics.moisture,
+            unit = "%",
+            color = MaterialTheme.colorScheme.primary
+        )
 
-            ChartSection(
-                title = "Light Level",
-                data = metrics.light,
-                unit = "lux",
-                color = MaterialTheme.colorScheme.tertiary
-            )
-        }
+        ChartSection(
+            title = "Temperature",
+            data = metrics.temperature,
+            unit = "°C",
+            color = MaterialTheme.colorScheme.secondary
+        )
+
+        ChartSection(
+            title = "Light Level",
+            data = metrics.light,
+            unit = "lux",
+            color = MaterialTheme.colorScheme.tertiary
+        )
     }
 }
 
@@ -154,16 +166,33 @@ fun ChartSection(
     }
 }
 
+@ExperimentalMaterial3Api
 @Preview(showBackground = true)
 @Composable
 fun HistoryScreenPreview() {
     SoilAppTheme {
-        // Mock data for preview
         val mockData = List(168) { (20..80).random() }
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            ChartSection("Soil Moisture", mockData, "%", Color(0xFF4CAF50))
-            ChartSection("Temperature", mockData, "°C", Color(0xFFF44336))
-            ChartSection("Light Level", mockData, "lux", Color(0xFFFF9800))
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text("Historical Data") },
+                    navigationIcon = {
+                        IconButton(onClick = { } ) {
+                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                        }
+                    }
+                )
+            }
+        ) { padding ->
+            HistoryContent(
+                metrics = SoilSenseMetrics(
+                    moisture = mockData,
+                    temperature = mockData,
+                    light = mockData
+                ),
+                modifier = Modifier.padding(16.dp)
+            )
         }
+
     }
 }

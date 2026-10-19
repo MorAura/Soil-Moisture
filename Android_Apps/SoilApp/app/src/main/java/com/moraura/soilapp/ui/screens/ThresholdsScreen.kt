@@ -35,7 +35,7 @@ fun ThresholdsScreen(
 ) {
     val thresholds by viewModel.thresholds.collectAsState()
 
-    ThresholdsContent(
+    ThresholdsContentScreen(
         thresholds = thresholds,
         onUpdateMoistureMin = { viewModel.updateMoistureMin(it) },
         onUpdateMoistureMax = { viewModel.updateMoistureMax(it) },
@@ -44,13 +44,64 @@ fun ThresholdsScreen(
         onUpdateWifiCredentials = { ssid, password ->
             viewModel.updateWifiCredentials(ssid, password)
         },
-        onNavigateBack = onNavigateBack
+        onNavigateBack = onNavigateBack,
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ThresholdsContent(
+    thresholds: SoilSenseThresholds,
+    onUpdateMoistureMin: (Int) -> Unit,
+    onUpdateMoistureMax: (Int) -> Unit,
+    onUpdateTemperatureMin: (Int) -> Unit,
+    onUpdateTemperatureMax: (Int) -> Unit,
+    onUpdateWifiCredentials: (ssid: String, password: String) -> Unit,
+) {
+    ThresholdCategory(
+        title = "Moisture Thresholds",
+        icon = Icons.Rounded.WaterDrop,
+        min = thresholds.moistureMin,
+        max = thresholds.moistureMax,
+        range = 0f..100f,
+        unit = "%",
+        onMinChange = onUpdateMoistureMin,
+        onMaxChange = onUpdateMoistureMax
+    )
+
+    ThresholdCategory(
+        title = "Temperature Thresholds",
+        icon = Icons.Rounded.Thermostat,
+        min = thresholds.temperatureMin,
+        max = thresholds.temperatureMax,
+        range = 0f..50f,
+        unit = "°C",
+        onMinChange = onUpdateTemperatureMin,
+        onMaxChange = onUpdateTemperatureMax
+    )
+
+    Text(
+        text = "Device Settings",
+        modifier = Modifier.padding(top = 8.dp),
+        style = MaterialTheme.typography.headlineSmall,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.primary
+    )
+
+    DeviceNameCategory(
+        deviceName = thresholds.deviceName
+    )
+
+    WifiConfigCategory(
+        ssid = thresholds.wifiSsid,
+        password = thresholds.wifiPassword,
+        onSaveWifi = onUpdateWifiCredentials
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ThresholdsContentScreen(
     thresholds: SoilSenseThresholds,
     onUpdateMoistureMin: (Int) -> Unit,
     onUpdateMoistureMax: (Int) -> Unit,
@@ -80,38 +131,13 @@ fun ThresholdsContent(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            ThresholdCategory(
-                title = "Moisture Thresholds",
-                icon = Icons.Rounded.WaterDrop,
-                min = thresholds.moistureMin,
-                max = thresholds.moistureMax,
-                range = 0f..100f,
-                unit = "%",
-                onMinChange = onUpdateMoistureMin,
-                onMaxChange = onUpdateMoistureMax
-            )
-
-            ThresholdCategory(
-                title = "Temperature Thresholds",
-                icon = Icons.Rounded.Thermostat,
-                min = thresholds.temperatureMin,
-                max = thresholds.temperatureMax,
-                range = 0f..50f,
-                unit = "°C",
-                onMinChange = onUpdateTemperatureMin,
-                onMaxChange = onUpdateTemperatureMax
-            )
-
-            HorizontalDivider()
-
-            DeviceNameCategory(
-                deviceName = thresholds.deviceName
-            )
-
-            WifiConfigCategory(
-                ssid = thresholds.wifiSsid,
-                password = thresholds.wifiPassword,
-                onSaveWifi = onUpdateWifiCredentials
+            ThresholdsContent(
+                thresholds = thresholds,
+                onUpdateMoistureMin = onUpdateMoistureMin,
+                onUpdateMoistureMax = onUpdateMoistureMax,
+                onUpdateTemperatureMin = onUpdateTemperatureMin,
+                onUpdateTemperatureMax = onUpdateTemperatureMax,
+                onUpdateWifiCredentials = onUpdateWifiCredentials
             )
         }
     }
@@ -124,7 +150,7 @@ fun DeviceNameCategory(
     var nameInput by remember(deviceName) { mutableStateOf(deviceName) }
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -173,7 +199,7 @@ fun WifiConfigCategory(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -310,7 +336,7 @@ fun ThresholdCategory(
 @Composable
 fun ThresholdsScreenPreview() {
     SoilAppTheme {
-        ThresholdsContent(
+        ThresholdsContentScreen(
             thresholds = SoilSenseThresholds(
                 moistureMin = 30,
                 moistureMax = 70,

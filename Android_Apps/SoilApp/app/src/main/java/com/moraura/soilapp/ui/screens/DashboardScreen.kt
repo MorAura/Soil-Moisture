@@ -233,7 +233,11 @@ fun DashboardContent(
                             }
                         }
                         2 -> {
-                            Column(modifier = Modifier.fillMaxSize()) {
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(16.dp),
+                                modifier = Modifier.fillMaxSize()
+                                .verticalScroll(rememberScrollState())
+                            ) {
                                 Text(
                                     text = "Thresholds",
                                     style = MaterialTheme.typography.headlineSmall,
@@ -241,22 +245,16 @@ fun DashboardContent(
                                     color = MaterialTheme.colorScheme.primary
                                 )
 
-                                Spacer(modifier = Modifier.height(16.dp))
-
-                                Column(
-                                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                                ) {
-                                    ThresholdsContent(
-                                        thresholds = thresholds,
-                                        onUpdateMoistureMin = { onUpdateMoistureMin(it) },
-                                        onUpdateMoistureMax = { onUpdateMoistureMax(it) },
-                                        onUpdateTemperatureMin = { onUpdateTemperatureMin(it) },
-                                        onUpdateTemperatureMax = { onUpdateTemperatureMax(it) },
-                                        onUpdateWifiCredentials = { ssid, password ->
-                                            onUpdateWifiCredentials(ssid, password)
-                                        },
-                                    )
-                                }
+                                ThresholdsContent(
+                                    thresholds = thresholds,
+                                    onUpdateMoistureMin = { onUpdateMoistureMin(it) },
+                                    onUpdateMoistureMax = { onUpdateMoistureMax(it) },
+                                    onUpdateTemperatureMin = { onUpdateTemperatureMin(it) },
+                                    onUpdateTemperatureMax = { onUpdateTemperatureMax(it) },
+                                    onUpdateWifiCredentials = { ssid, password ->
+                                        onUpdateWifiCredentials(ssid, password)
+                                    },
+                                )
                             }
                         }
                     }

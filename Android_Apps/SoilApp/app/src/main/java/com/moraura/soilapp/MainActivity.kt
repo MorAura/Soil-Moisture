@@ -126,8 +126,6 @@ fun SoilSenseApp(viewModel: SoilSenseViewModel = viewModel()) {
                     is SoilSenseRoute.Dashboard -> NavEntry(key) {
                         DashboardScreen(
                             viewModel = viewModel,
-                            onNavigateToHistory = { backStack.add(SoilSenseRoute.History) },
-                            onNavigateToThresholds = { backStack.add(SoilSenseRoute.Thresholds) },
                             onNavigateBack = { backStack.removeAt(backStack.size - 1) }
                         )
                     }

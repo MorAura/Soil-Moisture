@@ -87,7 +87,7 @@ fun DeviceScanContent(
     onStopScan: () -> Unit,
     onDeviceClick: (DiscoveredDevice) -> Unit
 ) {
-    TopGradientScreen() {
+    TopGradientScreen {
         Scaffold(
             containerColor = Color.Transparent,
             topBar = {

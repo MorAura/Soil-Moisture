@@ -4,6 +4,8 @@ An ESP32-powered system for healthier plants and more precise care.
 
 > Sense the environment. Respond with confidence.
 
+![Image of the prototype device](Images/Prototype_Image1.jpg)
+
 ## About MorAura
 
 Monitoring plants is a tedious, labour-intensive task. Consistent monitoring can reduce the likelihood of plants dying out and may improve crop yield.

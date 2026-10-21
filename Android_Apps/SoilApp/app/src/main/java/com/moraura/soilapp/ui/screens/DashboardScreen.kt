@@ -1,6 +1,7 @@
 package com.moraura.soilapp.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -147,7 +148,9 @@ fun DashboardContent(
 
                 SecondaryTabRow(
                     selectedTabIndex = selectedTabIndex,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.85f),
+                    contentColor = MaterialTheme.colorScheme.primary
                 ) {
                     tabs.forEachIndexed { index, title ->
                         Tab(
@@ -267,15 +270,21 @@ fun DashboardContent(
 
 @Composable
 fun ConnectionStatusCard(state: ConnectionState) {
+    val containerColor = when (state) {
+        is ConnectionState.Connected -> MaterialTheme.colorScheme.primaryContainer
+        is ConnectionState.Error -> MaterialTheme.colorScheme.errorContainer
+        else -> MaterialTheme.colorScheme.surfaceContainerHigh
+    }
+    val borderColor = when (state) {
+        is ConnectionState.Connected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+        is ConnectionState.Error -> MaterialTheme.colorScheme.error
+        else -> MaterialTheme.colorScheme.outlineVariant
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = when (state) {
-                is ConnectionState.Connected -> MaterialTheme.colorScheme.primaryContainer
-                is ConnectionState.Error -> MaterialTheme.colorScheme.errorContainer
-                else -> MaterialTheme.colorScheme.surfaceVariant
-            }
-        )
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        border = BorderStroke(1.dp, borderColor)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -299,7 +308,7 @@ fun ConnectionStatusCard(state: ConnectionState) {
             Text(
                 text = statusText,
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.Bold
             )
         }
     }
@@ -314,13 +323,19 @@ fun MetricCard(
     isAlert: Boolean
 ) {
     val color = if (isAlert) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-    val containerColor = if (isAlert) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+    val containerColor = if (isAlert) MaterialTheme.colorScheme.errorContainer
+                         else MaterialTheme.colorScheme.surfaceContainerHigh
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .height(140.dp),
-        colors = CardDefaults.cardColors(containerColor = containerColor)
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (isAlert) MaterialTheme.colorScheme.error
+                    else MaterialTheme.colorScheme.outlineVariant
+        )
     ) {
         Column(
             modifier = Modifier
@@ -347,7 +362,7 @@ fun MetricCard(
                 Text(
                     text = unit,
                     style = MaterialTheme.typography.titleMedium,
-                    color = color.copy(alpha = 0.7f),
+                    color = color.copy(alpha = 0.85f),
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
             }

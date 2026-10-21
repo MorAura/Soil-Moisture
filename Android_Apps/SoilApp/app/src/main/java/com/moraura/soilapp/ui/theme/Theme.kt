@@ -7,24 +7,59 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = LeafGreen80,
-    secondary = EarthBrown80,
-    tertiary = FreshGreen80,
-    error = AlertRed
+    primary = ForestGreenPrimary,
+    onPrimary = ForestGreenOnPrimary,
+    primaryContainer = ForestGreenPrimaryContainer,
+    onPrimaryContainer = ForestGreenOnPrimaryContainer,
+    secondary = MossGreenSecondary,
+    onSecondary = MossGreenOnSecondary,
+    secondaryContainer = MossGreenSecondaryContainer,
+    onSecondaryContainer = MossGreenOnSecondaryContainer,
+    tertiary = LimeHighlightTertiary,
+    onTertiary = LimeHighlightOnTertiary,
+    tertiaryContainer = LimeHighlightTertiaryContainer,
+    onTertiaryContainer = LimeHighlightOnTertiaryContainer,
+    background = DarkForestBackground,
+    onBackground = DarkForestOnBackground,
+    surface = DarkForestSurface,
+    onSurface = DarkForestOnSurface,
+    surfaceVariant = DarkForestSurfaceVariant,
+    onSurfaceVariant = DarkForestOnSurfaceVariant,
+    surfaceContainer = DarkForestSurfaceContainer,
+    surfaceContainerHigh = DarkForestSurfaceContainerHigh,
+    outline = DarkForestOutline,
+    outlineVariant = DarkForestOutlineVariant,
+    error = AlertRed,
+    errorContainer = AlertRedContainer
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = LeafGreen40,
-    secondary = EarthBrown40,
-    tertiary = FreshGreen40,
-    error = AlertRed,
-    errorContainer = AlertRedContainer
+    primary = LightForestPrimary,
+    onPrimary = LightForestOnPrimary,
+    primaryContainer = LightForestPrimaryContainer,
+    onPrimaryContainer = LightForestOnPrimaryContainer,
+    secondary = MossGreenSecondary,
+    onSecondary = MossGreenOnSecondary,
+    secondaryContainer = MossGreenSecondaryContainer,
+    onSecondaryContainer = MossGreenOnSecondaryContainer,
+    tertiary = LimeHighlightTertiary,
+    onTertiary = LimeHighlightOnTertiary,
+    tertiaryContainer = LimeHighlightTertiaryContainer,
+    onTertiaryContainer = LimeHighlightOnTertiaryContainer,
+    background = LightForestBackground,
+    onBackground = LightForestOnBackground,
+    surface = LightForestSurface,
+    onSurface = LightForestOnSurface,
+    surfaceVariant = LightForestSurfaceVariant,
+    onSurfaceVariant = LightForestOnSurfaceVariant,
+    error = AlertRedLight,
+    errorContainer = AlertRedContainerLight
 )
 
 @Composable
 fun SoilAppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {

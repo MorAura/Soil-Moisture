@@ -1,5 +1,6 @@
 package com.moraura.soilapp.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -15,6 +16,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.moraura.soilapp.data.model.SoilSenseMetrics
 import com.moraura.soilapp.ui.SoilSenseViewModel
+import com.moraura.soilapp.ui.components.TopGradientScreen
 import com.moraura.soilapp.ui.theme.SoilAppTheme
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.axis.rememberBottomAxis
@@ -34,24 +36,31 @@ fun HistoryScreen(
 ) {
     val metrics by viewModel.metrics.collectAsState()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Historical Data") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
-                    }
-                }
+    TopGradientScreen {
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                TopAppBar(
+                    title = { Text("Historical Data") },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        scrolledContainerColor = Color.Transparent
+                    )
+                )
+            }
+        ) { padding ->
+            HistoryContent(
+                metrics = metrics,
+                modifier = Modifier
+                    .padding(padding)
+                    .padding(16.dp)
             )
         }
-    ) { padding ->
-        HistoryContent(
-            metrics = metrics,
-            modifier = Modifier
-                .padding(padding)
-                .padding(16.dp)
-        )
     }
 }
 
@@ -112,7 +121,8 @@ fun ChartSection(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(

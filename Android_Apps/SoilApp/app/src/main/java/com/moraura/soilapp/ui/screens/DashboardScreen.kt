@@ -236,8 +236,10 @@ fun DashboardContent(
                         2 -> {
                             Column(
                                 verticalArrangement = Arrangement.spacedBy(16.dp),
-                                modifier = Modifier.fillMaxSize()
-                                .verticalScroll(rememberScrollState())
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .verticalScroll(rememberScrollState())
+                                    .imePadding()
                             ) {
                                 Text(
                                     text = "Thresholds",

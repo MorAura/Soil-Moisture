@@ -52,6 +52,152 @@ bool oldDeviceConnected = false;
 
 const unsigned long alertWifiTimeout = 5000;
 
+// WiFi setup code
+
+#include "esp_mac.h"
+#include "esp_wifi.h"
+#include <WiFi.h>
+#include <WiFiMulti.h>
+
+WiFiMulti WiFiMulti;
+
+Preferences wifiSetup;
+
+char wifi_ssid[33] = "";
+char wifi_pass[64] = "";
+
+// Store credentials in RTC memory so they persist through deep sleep
+RTC_DATA_ATTR char rtc_ssid[32] = "iPhone";
+RTC_DATA_ATTR char rtc_password[64] = "iphone123";
+
+void saveWifi(const String &ssid = "", const String &pass = "") {
+  wifiSetup.begin("wifi", false);
+  if (ssid != "") {
+    wifiSetup.putString("ssid", ssid);
+    ssid.toCharArray(wifi_ssid, sizeof(wifi_ssid));
+    Serial.print("ssid saved: " );
+    Serial.println(ssid);
+  } else {
+    Serial.print("ssid not saved");
+  }
+
+  if (pass != "") {
+    wifiSetup.putString("pass", pass);
+    pass.toCharArray(wifi_pass, sizeof(wifi_pass));
+    Serial.print("pass saved: ");
+    Serial.println(pass);
+  } else {
+    Serial.print("pass not saved" );
+  }
+
+  wifiSetup.end();
+}
+
+void loadWifi() {
+  wifiSetup.begin("wifi", true);
+  String ssid = wifiSetup.getString("ssid", "");
+  String pass = wifiSetup.getString("pass", "");
+  wifiSetup.end();
+  ssid.toCharArray(wifi_ssid, sizeof(wifi_ssid));
+  pass.toCharArray(wifi_pass, sizeof(wifi_pass));
+}
+
+
+// BLE setup code
+
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <BLE2902.h>
+
+BLEServer* pServer = NULL;
+
+BLECharacteristic* pMoistCharacteristic = NULL;
+BLECharacteristic* pTempCharacteristic = NULL;
+BLECharacteristic* pLightCharacteristic = NULL;
+
+BLECharacteristic* pMoistRTCharacteristic = NULL;
+BLECharacteristic* pTempRTCharacteristic = NULL;
+BLECharacteristic* pLightRTCharacteristic = NULL;
+
+BLECharacteristic* pMoistMaxCharacteristic = NULL;
+BLECharacteristic* pMoistMinCharacteristic = NULL;
+BLECharacteristic* pTempMaxCharacteristic = NULL;
+BLECharacteristic* pTempMinCharacteristic = NULL;
+
+
+BLECharacteristic* pAlertSSIDCharacteristic = NULL;
+BLECharacteristic* pAlertPassCharacteristic = NULL;
+
+#define SERVICE_UUID        "0d8d71f3-afea-4903-a389-d2db0912c1b1"
+
+#define MOIST_CHAR_UUID     "48ea775b-a582-4b00-b1b9-cf789c55887f"
+#define TEMP_CHAR_UUID      "2b2c8a8b-25cd-4804-a2de-b3a27c64758c"
+#define LIGHT_CHAR_UUID     "18ad5c89-a11b-4a1e-b655-6ee4c820ce4a"
+
+#define MOISTRT_CHAR_UUID     "a6043c33-8c01-484a-aad4-f26c80b73e4f"
+#define TEMPRT_CHAR_UUID      "f0b4ca2b-4510-4253-afac-0cb8582f5bc4"
+#define LIGHTRT_CHAR_UUID     "fb7437e8-4283-4583-82c8-87dce40b8876"
+
+#define MOIST_MAX_CHAR_UUID "4711d9f9-c38e-4f0f-9ef9-4e89e1f88391"
+#define MOIST_MIN_CHAR_UUID "7470e5d5-00ee-49a4-87ba-88ad813b287b"
+#define TEMP_MAX_CHAR_UUID  "5f59d498-e642-426f-b63f-3e9dd58465f3"
+#define TEMP_MIN_CHAR_UUID  "014930eb-902d-4fbc-b7be-1f85da76fa37"
+
+#define ALERT_SSID_UUID  "d93c1417-f814-41c6-b38c-6d145b4df240"
+#define ALERT_PASS_UUID  "74d2f3b5-9553-409f-81d2-b2670feecaec"
+
+class MyServerCallbacks: public BLEServerCallbacks {
+    void onConnect(BLEServer* pServer) {
+      // send data?
+      deviceConnected = true;
+    };
+    void onDisconnect(BLEServer* pServer) {
+      // go back to sleep
+      deviceConnected = false;
+    }
+};
+
+
+// Function to update realtime readings.
+void realtimeRead(){
+
+  float tempRead = analogRead(TempPin);
+  int moistureRead = analogRead(MoistPin);
+  int lightRead = analogRead(LightPin);
+
+  // ESP_ERROR_CHECK(temperature_sensor_get_celsius(temp_sensor, &tempRead));
+  
+  float Beta = 3950;
+  float thermistor_voltage = 3.3/4540*tempRead;
+  float thermistor_resistance = 12000/(3.3-thermistor_voltage)*thermistor_voltage;
+  float tempVal_float = 1/(1/298.15 + log(thermistor_resistance/10000)/Beta) - 275.15;
+  
+  uint8_t moistureVal = map(moistureRead,MoistureMin,MoistureMax,100,0);
+  uint8_t lightVal = map(lightRead,2200,4095,0,100);
+  uint8_t tempVal = round(tempVal_float);
+  
+  Serial.print("Moist : ");
+  Serial.print(moistureRead);
+  Serial.print(" | Light : ");
+  Serial.print(lightRead);
+  Serial.print(" | Temp : ");
+  Serial.println(tempRead);
+
+  Serial.println("Sending Moisture Data...");
+  pMoistRTCharacteristic->setValue(&moistureVal, sizeof(moistureVal));
+  pMoistRTCharacteristic->notify();
+  delay(100);  
+  Serial.println("Sending Temperature Data...");
+  pTempRTCharacteristic->setValue(&tempVal, sizeof(tempVal));
+  pTempRTCharacteristic->notify();
+  delay(100);
+  Serial.println("Sending Light Data...");
+  pLightRTCharacteristic->setValue(&lightVal, sizeof(lightVal));
+  pLightRTCharacteristic->notify();
+  delay(100);
+
+}
 
 // Function to read new data, calculate values and add save it to memory. (Trigger alert if necessary).
 void readData(){
@@ -121,105 +267,6 @@ void readData(){
   lightHist[167] = lightVal;
   tempHist[167] = tempVal;
 }
-
-// WiFi setup code
-
-#include "esp_mac.h"
-#include "esp_wifi.h"
-#include <WiFi.h>
-#include <WiFiMulti.h>
-
-WiFiMulti WiFiMulti;
-
-Preferences wifiSetup;
-
-char wifi_ssid[33] = "";
-char wifi_pass[64] = "";
-
-// Store credentials in RTC memory so they persist through deep sleep
-RTC_DATA_ATTR char rtc_ssid[32] = "iPhone";
-RTC_DATA_ATTR char rtc_password[64] = "iphone123";
-
-void saveWifi(const String &ssid = "", const String &pass = "") {
-  wifiSetup.begin("wifi", false);
-  if (ssid != "") {
-    wifiSetup.putString("ssid", ssid);
-    ssid.toCharArray(wifi_ssid, sizeof(wifi_ssid));
-    Serial.print("ssid saved: " );
-    Serial.println(ssid);
-  } else {
-    Serial.print("ssid not saved");
-  }
-
-  if (pass != "") {
-    wifiSetup.putString("pass", pass);
-    pass.toCharArray(wifi_pass, sizeof(wifi_pass));
-    Serial.print("pass saved: ");
-    Serial.println(pass);
-  } else {
-    Serial.print("pass not saved" );
-  }
-
-  wifiSetup.end();
-}
-
-void loadWifi() {
-  wifiSetup.begin("wifi", true);
-  String ssid = wifiSetup.getString("ssid", "");
-  String pass = wifiSetup.getString("pass", "");
-  wifiSetup.end();
-  ssid.toCharArray(wifi_ssid, sizeof(wifi_ssid));
-  pass.toCharArray(wifi_pass, sizeof(wifi_pass));
-}
-
-
-// BLE setup code
-
-#include <BLEDevice.h>
-#include <BLEServer.h>
-#include <BLEUtils.h>
-#include <BLE2902.h>
-
-BLEServer* pServer = NULL;
-
-BLECharacteristic* pMoistCharacteristic = NULL;
-BLECharacteristic* pTempCharacteristic = NULL;
-BLECharacteristic* pLightCharacteristic = NULL;
-
-
-BLECharacteristic* pMoistMaxCharacteristic = NULL;
-BLECharacteristic* pMoistMinCharacteristic = NULL;
-BLECharacteristic* pTempMaxCharacteristic = NULL;
-BLECharacteristic* pTempMinCharacteristic = NULL;
-
-
-BLECharacteristic* pAlertSSIDCharacteristic = NULL;
-BLECharacteristic* pAlertPassCharacteristic = NULL;
-
-#define SERVICE_UUID        "0d8d71f3-afea-4903-a389-d2db0912c1b1"
-
-#define MOIST_CHAR_UUID     "48ea775b-a582-4b00-b1b9-cf789c55887f"
-#define TEMP_CHAR_UUID      "2b2c8a8b-25cd-4804-a2de-b3a27c64758c"
-#define LIGHT_CHAR_UUID     "18ad5c89-a11b-4a1e-b655-6ee4c820ce4a"
-
-#define MOIST_MAX_CHAR_UUID "4711d9f9-c38e-4f0f-9ef9-4e89e1f88391"
-#define MOIST_MIN_CHAR_UUID "7470e5d5-00ee-49a4-87ba-88ad813b287b"
-#define TEMP_MAX_CHAR_UUID  "5f59d498-e642-426f-b63f-3e9dd58465f3"
-#define TEMP_MIN_CHAR_UUID  "014930eb-902d-4fbc-b7be-1f85da76fa37"
-
-#define ALERT_SSID_UUID  "d93c1417-f814-41c6-b38c-6d145b4df240"
-#define ALERT_PASS_UUID  "74d2f3b5-9553-409f-81d2-b2670feecaec"
-
-class MyServerCallbacks: public BLEServerCallbacks {
-    void onConnect(BLEServer* pServer) {
-      // send data?
-      deviceConnected = true;
-    };
-    void onDisconnect(BLEServer* pServer) {
-      // go back to sleep
-      deviceConnected = false;
-    }
-};
 
 class SharedCharacteristicCallbacks : public BLECharacteristicCallbacks {
 
@@ -323,6 +370,30 @@ void StartBLE(){
                     );
   pLightCharacteristic->addDescriptor(new BLE2902());
 
+   // Create the Characteristic Moisture (realtime)
+  pMoistRTCharacteristic = pService->createCharacteristic(
+                      MOISTRT_CHAR_UUID,
+                      BLECharacteristic::PROPERTY_READ |
+                      BLECharacteristic::PROPERTY_NOTIFY
+                    );
+  pMoistRTCharacteristic->addDescriptor(new BLE2902());
+
+  // Create the Characteristic Temperature (realtime)
+  pTempRTCharacteristic = pService->createCharacteristic(
+                      TEMPRT_CHAR_UUID,
+                      BLECharacteristic::PROPERTY_READ |
+                      BLECharacteristic::PROPERTY_NOTIFY
+                    );
+  pTempRTCharacteristic->addDescriptor(new BLE2902());
+  
+  // Create the Characteristic Light (realtime)
+  pLightRTCharacteristic = pService->createCharacteristic(
+                      LIGHTRT_CHAR_UUID,
+                      BLECharacteristic::PROPERTY_READ |
+                      BLECharacteristic::PROPERTY_NOTIFY
+                    );
+  pLightRTCharacteristic->addDescriptor(new BLE2902());
+
   // Create the Characteristic Max moisture
   pMoistMaxCharacteristic = pService->createCharacteristic(
                       MOIST_MAX_CHAR_UUID,
@@ -400,7 +471,6 @@ void StartBLE(){
 
   while (deviceConnected || currentMillis - previousMillis < 60000) {
     currentMillis = millis();
-
     if (deviceConnected && !oldDeviceConnected) {
       readData();
       delay(300);
@@ -439,6 +509,9 @@ void StartBLE(){
       pLightCharacteristic->setValue(lightHist, sizeof(lightHist));
       pLightCharacteristic->notify();
       */
+      
+      // Update real time readings
+      realtimeRead();
 
       oldDeviceConnected = deviceConnected;
     }

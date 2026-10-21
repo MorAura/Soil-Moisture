@@ -641,9 +641,12 @@ void setup(){
   if (wakeup_reason == ESP_SLEEP_WAKEUP_TIMER) {
     Serial.println("Woke up from timer");
     readData();
-  } else {
+  } else if (wakeup_reason == ESP_SLEEP_WAKEUP_GPIO) {
     Serial.println("Woke up from PIN");
     StartBLE();
+  } else {
+    Serial.println("First boot");
+    readData();
   }
 
   // Setup wake pin and sleep timer

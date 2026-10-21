@@ -1,5 +1,8 @@
 // Status Led (Alerts)
-#define LedPin 8
+#include <Adafruit_NeoPixel.h>
+#define LedPin 10
+#define NUM_LEDS 1
+Adafruit_NeoPixel pixels(NUM_LEDS, LedPin, NEO_RGB + NEO_KHZ800);
 
 // Internal temp config
 /*
@@ -149,11 +152,11 @@ BLECharacteristic* pAlertPassCharacteristic = NULL;
 
 class MyServerCallbacks: public BLEServerCallbacks {
     void onConnect(BLEServer* pServer) {
-      // send data?
+      Serial.println("Client Connected.");
       deviceConnected = true;
     };
     void onDisconnect(BLEServer* pServer) {
-      // go back to sleep
+      Serial.println("Client Disconnected. Waiting 30s");
       deviceConnected = false;
     }
 };
@@ -469,7 +472,7 @@ void StartBLE(){
   unsigned long currentMillis = millis();
   unsigned long previousMillis = currentMillis;
 
-  while (deviceConnected || currentMillis - previousMillis < 60000) {
+  while (deviceConnected || currentMillis - previousMillis < 30000) {
     currentMillis = millis();
     if (deviceConnected && !oldDeviceConnected) {
       readData();
@@ -527,6 +530,8 @@ void StartBLE(){
 }
 
 void sendAlert(){
+  pixels.setPixelColor(0, pixels.Color(100, 0, 0)); 
+  pixels.show();
   esp_wifi_start();
 
   loadWifi();
@@ -629,23 +634,26 @@ void setup(){
   pinMode(LightPin,INPUT);
 
   // Setup onboard led as output
-  /*
-  pinMode(LedPin,OUTPUT);
-  digitalWrite(LedPin,HIGH);
-  delay(500);
-  digitalWrite(LedPin,LOW);
-  */
-  delay(5000);
+  pixels.begin();
+  pixels.clear(); 
   // Check for wakeup cause
   esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
   if (wakeup_reason == ESP_SLEEP_WAKEUP_TIMER) {
     Serial.println("Woke up from timer");
+    pixels.setPixelColor(0, pixels.Color(0, 100, 0)); 
+    pixels.show();
+    delay(1000);
     readData();
   } else if (wakeup_reason == ESP_SLEEP_WAKEUP_GPIO) {
     Serial.println("Woke up from PIN");
+    pixels.setPixelColor(0, pixels.Color(0, 0, 100)); 
+    pixels.show();
     StartBLE();
   } else {
     Serial.println("First boot");
+    pixels.setPixelColor(0, pixels.Color(0, 100, 100)); 
+    pixels.show();
+    delay(1000);
     readData();
   }
 
@@ -655,6 +663,8 @@ void setup(){
   esp_deep_sleep_enable_gpio_wakeup(pin_mask, ESP_GPIO_WAKEUP_GPIO_LOW);
   esp_sleep_enable_timer_wakeup(SLEEP_DURATION_SEC * uS_TO_S_FACTOR);
 
+  pixels.clear(); 
+  pixels.show();
   Serial.println("Entering deep sleep...");
   Serial.flush();
   esp_deep_sleep_start();

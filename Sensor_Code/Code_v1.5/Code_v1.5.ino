@@ -18,10 +18,14 @@ temperature_sensor_handle_t temp_sensor = NULL;
 
 /*
 Connections:
-  Thermistor - A4
-  Moisture Sensor - A3
-  Light Sensor - A2
+  Moisture Sensor - GPIO0
+  Thermistor - GPIO1
+  Light Sensor - GPIO2
 */
+
+#define MoistPin 0
+#define TempPin 1
+#define LightPin 2
 
 // Determined experimentally
 #define MoistureMax 3130
@@ -52,9 +56,9 @@ const unsigned long alertWifiTimeout = 5000;
 // Function to read new data, calculate values and add save it to memory. (Trigger alert if necessary).
 void readData(){
 
-  float tempRead = analogRead(A4);
-  int moistureRead = analogRead(A3);
-  int lightRead = analogRead(A2);
+  float tempRead = analogRead(TempPin);
+  int moistureRead = analogRead(MoistPin);
+  int lightRead = analogRead(LightPin);
 
 
   // ESP_ERROR_CHECK(temperature_sensor_get_celsius(temp_sensor, &tempRead));
@@ -547,18 +551,18 @@ void setup(){
   Serial.println("Starting Sensor");
 
   // Setup adc pins for moisture, temperature and light level as inputs
-  pinMode(A4,INPUT);
-  pinMode(A3,INPUT);
-  pinMode(A2,INPUT);
+  pinMode(MoistPin,INPUT);
+  pinMode(TempPin,INPUT);
+  pinMode(LightPin,INPUT);
 
   // Setup onboard led as output
+  /*
   pinMode(LedPin,OUTPUT);
   digitalWrite(LedPin,HIGH);
   delay(500);
   digitalWrite(LedPin,LOW);
-
+  */
   delay(5000);
-
   // Check for wakeup cause
   esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
   if (wakeup_reason == ESP_SLEEP_WAKEUP_TIMER) {

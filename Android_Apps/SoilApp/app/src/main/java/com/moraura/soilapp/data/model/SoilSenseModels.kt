@@ -3,7 +3,10 @@ package com.moraura.soilapp.data.model
 data class SoilSenseMetrics(
     val moisture: List<Int> = emptyList(),
     val temperature: List<Int> = emptyList(),
-    val light: List<Int> = emptyList()
+    val light: List<Int> = emptyList(),
+    val realTimeMoisture: Int? = null,
+    val realTimeTemperature: Int? = null,
+    val realTimeLight: Int? = null,
 )
 
 data class SoilSenseThresholds(

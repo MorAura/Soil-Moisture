@@ -228,7 +228,10 @@ class BleManager(private val context: Context) {
             val notificationChars = listOf(
                 SoilSenseConstants.MOIST_CHAR_UUID,
                 SoilSenseConstants.TEMP_CHAR_UUID,
-                SoilSenseConstants.LIGHT_CHAR_UUID
+                SoilSenseConstants.LIGHT_CHAR_UUID,
+                SoilSenseConstants.MOISTRT_CHAR_UUID,
+                SoilSenseConstants.TEMPRT_CHAR_UUID,
+                SoilSenseConstants.LIGHTRT_CHAR_UUID,
             )
             // 1. Enable notifications
             for (uuid in notificationChars) {
@@ -298,6 +301,24 @@ class BleManager(private val context: Context) {
                     _metrics.update { current ->
                         current.copy(light = if (current.light.isEmpty()) parsedList else current.light + parsedList)
                     }
+                }
+            }
+            SoilSenseConstants.MOISTRT_CHAR_UUID -> {
+                if (data.isNotEmpty()) {
+                    val rtVal = data[0].toInt() and 0xFF
+                    _metrics.update { current -> current.copy(realTimeMoisture = rtVal) }
+                }
+            }
+            SoilSenseConstants.TEMPRT_CHAR_UUID -> {
+                if (data.isNotEmpty()) {
+                    val rtVal = data[0].toInt() and 0xFF
+                    _metrics.update { current -> current.copy(realTimeTemperature = rtVal) }
+                }
+            }
+            SoilSenseConstants.LIGHTRT_CHAR_UUID -> {
+                if (data.isNotEmpty()) {
+                    val rtVal = data[0].toInt() and 0xFF
+                    _metrics.update { current -> current.copy(realTimeLight = rtVal) }
                 }
             }
             SoilSenseConstants.MOIST_MAX_CHAR_UUID -> {

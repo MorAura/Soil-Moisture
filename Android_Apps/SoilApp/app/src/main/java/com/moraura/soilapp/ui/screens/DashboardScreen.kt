@@ -180,34 +180,35 @@ fun DashboardContent(
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     item {
-                                        val lastMoisture = metrics.moisture.lastOrNull()
+                                        val currentMoisture = metrics.realTimeMoisture ?: metrics.moisture.lastOrNull()
                                         val isOutOfRange =
-                                            lastMoisture != null && (lastMoisture < thresholds.moistureMin || lastMoisture > thresholds.moistureMax)
+                                            currentMoisture != null && (currentMoisture < thresholds.moistureMin || currentMoisture > thresholds.moistureMax)
                                         MetricCard(
                                             title = "Moisture",
-                                            value = lastMoisture?.toString() ?: "--",
+                                            value = currentMoisture?.toString() ?: "--",
                                             unit = "%",
                                             icon = Icons.Rounded.WaterDrop,
                                             isAlert = isOutOfRange
                                         )
                                     }
                                     item {
-                                        val lastTemp = metrics.temperature.lastOrNull()
+                                        val currentTemp = metrics.realTimeTemperature ?: metrics.temperature.lastOrNull()
                                         val isOutOfRange =
-                                            lastTemp != null && (lastTemp < thresholds.temperatureMin || lastTemp > thresholds.temperatureMax)
+                                            currentTemp != null && (currentTemp < thresholds.temperatureMin || currentTemp > thresholds.temperatureMax)
                                         MetricCard(
                                             title = "Temperature",
-                                            value = lastTemp?.toString() ?: "--",
+                                            value = currentTemp?.toString() ?: "--",
                                             unit = "°C",
                                             icon = Icons.Rounded.Thermostat,
                                             isAlert = isOutOfRange
                                         )
                                     }
                                     item {
+                                        val currentLight = metrics.realTimeLight ?: metrics.light.lastOrNull()
                                         MetricCard(
                                             title = "Light Level",
-                                            value = metrics.light.lastOrNull()?.toString() ?: "--",
-                                            unit = "lux",
+                                            value = currentLight?.toString() ?: "--",
+                                            unit = "%",
                                             icon = Icons.Rounded.LightMode,
                                             isAlert = false // Light doesn't have thresholds
                                         )

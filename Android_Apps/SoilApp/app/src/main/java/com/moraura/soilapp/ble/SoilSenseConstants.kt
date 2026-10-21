@@ -11,6 +11,11 @@ object SoilSenseConstants {
     val TEMP_CHAR_UUID: UUID = UUID.fromString("2b2c8a8b-25cd-4804-a2de-b3a27c64758c")
     val LIGHT_CHAR_UUID: UUID = UUID.fromString("18ad5c89-a11b-4a1e-b655-6ee4c820ce4a")
 
+    // Realtime Notifications
+    val MOISTRT_CHAR_UUID: UUID = UUID.fromString("a6043c33-8c01-484a-aad4-f26c80b73e4f")
+    val TEMPRT_CHAR_UUID: UUID = UUID.fromString("f0b4ca2b-4510-4253-afac-0cb8582f5bc4")
+    val LIGHTRT_CHAR_UUID: UUID = UUID.fromString("fb7437e8-4283-4583-82c8-87dce40b8876")
+
     // Thresholds
     val MOIST_MAX_CHAR_UUID: UUID = UUID.fromString("4711d9f9-c38e-4f0f-9ef9-4e89e1f88391")
     val MOIST_MIN_CHAR_UUID: UUID = UUID.fromString("7470e5d5-00ee-49a4-87ba-88ad813b287b")

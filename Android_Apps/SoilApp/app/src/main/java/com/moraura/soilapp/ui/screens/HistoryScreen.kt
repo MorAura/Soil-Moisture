@@ -103,7 +103,7 @@ fun ChartSection(
             withContext(Dispatchers.Default) {
                 modelProducer.runTransaction {
                     lineSeries {
-                        series(data.map { it.toFloat() })
+                        series(data.asReversed().map { it.toFloat() })
                     }
                 }
             }

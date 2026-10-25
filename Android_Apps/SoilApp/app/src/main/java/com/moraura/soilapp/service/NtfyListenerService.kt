@@ -47,9 +47,9 @@ class NtfyListenerService : Service() {
         val notification = NotificationCompat.Builder(this, "alerts")
             .setSmallIcon(R.drawable.rounded_water_drops_24)
 //            .setContentTitle(title)
-//            .setContentText(message)
-            .setContentTitle("$title: $message") // minified notification
-            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+            .setContentText("$title: $message")
+            .setContentTitle("$message Alert") // minified notification
+//            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pending)
             .setAutoCancel(true)
@@ -121,7 +121,7 @@ class NtfyListenerService : Service() {
 
         val notification = NotificationCompat.Builder(this, "ntfy_sync_channel")
             .setContentTitle("Listening for alerts")
-            .setContentText("Background connection active")
+            .setContentText("(Turn off this alert from notification channels)")
             .setSmallIcon(android.R.drawable.ic_dialog_info) // Replace with your app's icon
             .build()
 

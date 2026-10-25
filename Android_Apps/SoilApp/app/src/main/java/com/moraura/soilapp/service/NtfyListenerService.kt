@@ -17,6 +17,8 @@ import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import com.moraura.soilapp.MainActivity
 import com.moraura.soilapp.R
+import com.moraura.soilapp.data.repository.AlertTopicRepository
+import kotlinx.coroutines.*
 import okhttp3.*
 import org.json.JSONException
 import org.json.JSONObject
@@ -25,10 +27,10 @@ import java.util.concurrent.TimeUnit
 import kotlin.jvm.java
 
 class NtfyListenerService : Service() {
-    val alertTopics = listOf(
-        "oiiaioiiiai",
-        "moraura-yjg6w-123"
-    )
+    private lateinit var repository: AlertTopicRepository
+    private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private var activeCall: Call? = null
+
     private val client = OkHttpClient.Builder()
         .readTimeout(0, TimeUnit.MINUTES)
         .build()
@@ -46,10 +48,8 @@ class NtfyListenerService : Service() {
 
         val notification = NotificationCompat.Builder(this, "alerts")
             .setSmallIcon(R.drawable.rounded_water_drops_24)
-//            .setContentTitle(title)
             .setContentText("$title: $message")
             .setContentTitle("$message Alert") // minified notification
-//            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pending)
             .setAutoCancel(true)
@@ -75,7 +75,7 @@ class NtfyListenerService : Service() {
                 val tempLow = data.optString("tempLow", "0")
                 val tempHigh = data.optString("tempHigh", "0")
 
-                val title = "$deviceName"
+                val title = deviceName
 
                 if (moistLow != "0") {
                     sendEventNotification(title, "Low Moisture")
@@ -102,6 +102,8 @@ class NtfyListenerService : Service() {
     @SuppressLint("ForegroundServiceType")
     override fun onCreate() {
         super.onCreate()
+
+        repository = AlertTopicRepository(this)
 
         val channel = NotificationChannel(
             "ntfy_sync_channel",
@@ -136,15 +138,29 @@ class NtfyListenerService : Service() {
             startForeground(1, notification)
         }
 
-        startListening(alertTopics)
+        serviceScope.launch {
+            repository.allAlertTopics.collect { entities ->
+                val topics = if (entities.isEmpty()) {
+                    listOf("oiiaioiiiai", "moraura-yjg6w-123")
+                } else {
+                    entities.map { it.alertUrl.trimEnd('/').substringAfterLast('/') }.distinct()
+                }
+                startListening(topics)
+            }
+        }
     }
 
     private fun startListening(topics: List<String>) {
+        if (topics.isEmpty()) return
+        activeCall?.cancel()
+
         val request = Request.Builder()
             .url("https://ntfy.sh/${topics.joinToString(",")}/json")
             .build()
 
-        client.newCall(request).enqueue(object : Callback {
+        val call = client.newCall(request)
+        activeCall = call
+        call.enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 // Handle reconnection logic
             }
@@ -161,6 +177,12 @@ class NtfyListenerService : Service() {
                 }
             }
         })
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        activeCall?.cancel()
+        serviceScope.cancel()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null

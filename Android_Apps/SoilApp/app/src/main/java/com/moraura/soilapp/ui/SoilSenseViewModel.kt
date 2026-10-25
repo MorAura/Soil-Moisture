@@ -6,6 +6,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.moraura.soilapp.ble.BleManager
 import com.moraura.soilapp.ble.SoilSenseConstants
+import com.moraura.soilapp.data.local.AlertTopicEntity
+import com.moraura.soilapp.data.repository.AlertTopicRepository
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -13,11 +16,13 @@ import kotlin.time.Duration.Companion.milliseconds
 
 class SoilSenseViewModel(application: Application) : AndroidViewModel(application) {
     private val bleManager = BleManager(application)
+    private val alertTopicRepository = AlertTopicRepository(application)
 
     val connectionState = bleManager.connectionState
     val foundDevices = bleManager.foundDevices
     val metrics = bleManager.metrics
     val thresholds = bleManager.thresholds
+    val alertTopics: Flow<List<AlertTopicEntity>> = alertTopicRepository.allAlertTopics
 
     fun startScanning() {
         bleManager.startScan()
@@ -61,6 +66,18 @@ class SoilSenseViewModel(application: Application) : AndroidViewModel(applicatio
             updateWifiSsid(ssid)
             delay(200.milliseconds)
             updateWifiPassword(pass)
+        }
+    }
+
+    fun saveAlertTopic(deviceId: String, deviceName: String, alertUrl: String) {
+        viewModelScope.launch {
+            alertTopicRepository.saveAlertTopic(deviceId, deviceName, alertUrl)
+        }
+    }
+
+    fun deleteAlertTopic(deviceId: String) {
+        viewModelScope.launch {
+            alertTopicRepository.deleteAlertTopic(deviceId)
         }
     }
 }

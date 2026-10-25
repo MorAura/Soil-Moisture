@@ -33,18 +33,20 @@ char device_name[33];
 void saveDeviceName(const String &name = "") {
   deviceSetup.begin("device", false);
   deviceSetup.putString("name", name);
+  deviceSetup.end();
   name.toCharArray(device_name, sizeof(device_name));
 }
 
 void loadDeviceName() {
   deviceSetup.begin("device", true);
   String deviceName = deviceSetup.getString("name", "");
+  deviceSetup.end();
   
   if (deviceName == "") {
-    if (device_id == "") {
+    if (strlen(device_id) == 0) {
       Serial.println("ERROR: device_id should not be empty");
     }
-    deviceName = "SoilSense-" + String(device_id);
+    deviceName = "SoilSense-" + String(device_id).substring(0, 6);
   }
 
   deviceName.toCharArray(device_name, sizeof(device_name));
@@ -163,6 +165,7 @@ BLECharacteristic* pAlertSSIDCharacteristic = NULL;
 BLECharacteristic* pAlertPassCharacteristic = NULL;
 
 BLECharacteristic* pDeviceNameCharacteristic = NULL;
+BLECharacteristic* pDeviceIDCharacteristic = NULL;
 
 #define SERVICE_UUID        "0d8d71f3-afea-4903-a389-d2db0912c1b1"
 
@@ -183,6 +186,7 @@ BLECharacteristic* pDeviceNameCharacteristic = NULL;
 #define ALERT_PASS_UUID  "74d2f3b5-9553-409f-81d2-b2670feecaec"
 
 #define DEVICE_NAME_UUID "47bd94ad-57af-4b11-964f-97a3bf94b396"
+#define DEVICE_ID_UUID   "03034c39-411a-40ec-b480-2c69edc542b4"
 
 class MyServerCallbacks: public BLEServerCallbacks {
     void onConnect(BLEServer* pServer) {
@@ -208,10 +212,10 @@ void realtimeRead(){
   float Beta = 3950;
   float thermistor_voltage = 3.3/4540*tempRead;
   float thermistor_resistance = 12000/(3.3-thermistor_voltage)*thermistor_voltage;
-  float tempVal_float = 1/(1/298.15 + log(thermistor_resistance/10000)/Beta) - 275.15;
+  float tempVal_float = 1/(1/298.15 + log(thermistor_resistance/10000)/Beta) - 273.15;
   
-  uint8_t moistureVal = map(moistureRead,MoistureMin,MoistureMax,100,0);
-  uint8_t lightVal = map(lightRead,2200,4095,0,100);
+  uint8_t moistureVal = constrain(map(moistureRead,MoistureMin,MoistureMax,100,0), 0, 100);
+  uint8_t lightVal = constrain(map(lightRead,2200,4095,0,100), 0, 100);
   uint8_t tempVal = round(tempVal_float);
   
   Serial.print("Moist : ");
@@ -364,6 +368,14 @@ class SharedCharacteristicCallbacks : public BLECharacteristicCallbacks {
       saveWifi("", rtc_password);
       pAlertPassCharacteristic->setValue(rtc_password);
     }
+
+    if (pCharacteristic == pDeviceNameCharacteristic) {
+      Serial.print("Device Name Characteristic written: ");
+      String rxValue = pCharacteristic->getValue();
+      Serial.println(rxValue.c_str());
+      saveDeviceName(rxValue);
+      pDeviceNameCharacteristic->setValue(device_name);
+    }
     
   }
 };
@@ -373,9 +385,8 @@ SharedCharacteristicCallbacks* myWriteCallbacks = new SharedCharacteristicCallba
 void StartBLE(){
   // Turn on BLE
 
-  char bleName[32];
-  snprintf(bleName, sizeof(bleName), "SoilSense-%s", device_id + 6); // upper half of the mac address (device identifier) to rename the device
-  BLEDevice::init(bleName);
+  loadDeviceName();
+  BLEDevice::init(device_name);
   
   // REQUIRED: Expand MTU so the 168-byte arrays fit in a single packet
   BLEDevice::setMTU(517);
@@ -439,7 +450,7 @@ void StartBLE(){
                       BLECharacteristic::PROPERTY_READ |
                       BLECharacteristic::PROPERTY_WRITE 
                     );
-  pMoistMaxCharacteristic->addDescriptor(new BLE2902());
+  // pMoistMaxCharacteristic->addDescriptor(new BLE2902());
   pMoistMaxCharacteristic->setCallbacks(myWriteCallbacks); // ATTACH CALLBACK
   pMoistMaxCharacteristic->setValue(&moistHigh, 1);
 
@@ -450,7 +461,7 @@ void StartBLE(){
                       BLECharacteristic::PROPERTY_READ |
                       BLECharacteristic::PROPERTY_WRITE 
                     );
-  pMoistMinCharacteristic->addDescriptor(new BLE2902());
+  // pMoistMinCharacteristic->addDescriptor(new BLE2902());
   pMoistMinCharacteristic->setCallbacks(myWriteCallbacks); // ATTACH CALLBACK
   pMoistMinCharacteristic->setValue(&moistLow, 1);
   
@@ -460,7 +471,7 @@ void StartBLE(){
                       BLECharacteristic::PROPERTY_READ |
                       BLECharacteristic::PROPERTY_WRITE 
                     );
-  pTempMaxCharacteristic->addDescriptor(new BLE2902());
+  // pTempMaxCharacteristic->addDescriptor(new BLE2902());
   pTempMaxCharacteristic->setCallbacks(myWriteCallbacks); // ATTACH CALLBACK
   pTempMaxCharacteristic->setValue(&tempHigh, 1);
   
@@ -470,7 +481,7 @@ void StartBLE(){
                       BLECharacteristic::PROPERTY_READ |
                       BLECharacteristic::PROPERTY_WRITE 
                     );
-  pTempMinCharacteristic->addDescriptor(new BLE2902());
+  // pTempMinCharacteristic->addDescriptor(new BLE2902());
   pTempMinCharacteristic->setCallbacks(myWriteCallbacks); // ATTACH CALLBACK
   pTempMinCharacteristic->setValue(&tempLow, 1);
 
@@ -480,7 +491,7 @@ void StartBLE(){
                       BLECharacteristic::PROPERTY_READ |
                       BLECharacteristic::PROPERTY_WRITE 
                     );
-  pAlertSSIDCharacteristic->addDescriptor(new BLE2902());
+  // pAlertSSIDCharacteristic->addDescriptor(new BLE2902());
   pAlertSSIDCharacteristic->setCallbacks(myWriteCallbacks); // ATTACH CALLBACK
 
   // Create the Characteristic Alert Pass Temperature
@@ -489,7 +500,7 @@ void StartBLE(){
                       BLECharacteristic::PROPERTY_READ |
                       BLECharacteristic::PROPERTY_WRITE 
                     );
-  pAlertPassCharacteristic->addDescriptor(new BLE2902());
+  // pAlertPassCharacteristic->addDescriptor(new BLE2902());
   pAlertPassCharacteristic->setCallbacks(myWriteCallbacks); // ATTACH CALLBACK
 
   pDeviceNameCharacteristic = pService->createCharacteristic(
@@ -497,8 +508,14 @@ void StartBLE(){
                       BLECharacteristic::PROPERTY_READ |
                       BLECharacteristic::PROPERTY_WRITE 
                     );
-  pDeviceNameCharacteristic->addDescriptor(new BLE2902());
+  // pDeviceNameCharacteristic->addDescriptor(new BLE2902());
   pDeviceNameCharacteristic->setCallbacks(myWriteCallbacks);
+
+  pDeviceIDCharacteristic = pService->createCharacteristic(
+                      DEVICE_ID_UUID,
+                      BLECharacteristic::PROPERTY_READ
+                    );
+  pDeviceIdCharacteristic->setValue((uint8_t*)device_id, strlen(device_id)); //practically same as String(device_id)
   
 
   pService->start();
@@ -623,10 +640,10 @@ void sendAlert(){
     return;
   }
 
-  String message = "{\"id\":";
+  String message = "{\"id\":\"";
   // message += ESP.getEfuseMac();
   message += device_id;
-  message += ", \"moistLow\":";
+  message += "\", \"moistLow\":";
   message += moistLowAlert;
   message += ", \"moistHigh\":";
   message += moistHighAlert;

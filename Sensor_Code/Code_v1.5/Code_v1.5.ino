@@ -515,7 +515,7 @@ void StartBLE(){
                       DEVICE_ID_UUID,
                       BLECharacteristic::PROPERTY_READ
                     );
-  pDeviceIdCharacteristic->setValue((uint8_t*)device_id, strlen(device_id)); //practically same as String(device_id)
+  pDeviceIDCharacteristic->setValue((uint8_t*)device_id, strlen(device_id)); //practically same as String(device_id)
   
 
   pService->start();
@@ -643,6 +643,8 @@ void sendAlert(){
   String message = "{\"id\":\"";
   // message += ESP.getEfuseMac();
   message += device_id;
+  message += "\", \"name\":\"";
+  message+= device_name;
   message += "\", \"moistLow\":";
   message += moistLowAlert;
   message += ", \"moistHigh\":";

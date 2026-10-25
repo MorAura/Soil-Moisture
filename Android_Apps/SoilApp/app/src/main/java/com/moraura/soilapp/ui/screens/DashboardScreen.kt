@@ -59,6 +59,7 @@ fun DashboardScreen(
         onUpdateWifiCredentials = { ssid, password ->
             viewModel.updateWifiCredentials(ssid, password)
         },
+        onUpdateDeviceName = { viewModel.updateDeviceName(it) },
     )
 }
 
@@ -74,6 +75,7 @@ fun DashboardContent(
     onUpdateTemperatureMin: (Int) -> Unit,
     onUpdateTemperatureMax: (Int) -> Unit,
     onUpdateWifiCredentials: (String, String) -> Unit,
+    onUpdateDeviceName: (String) -> Unit,
     onNavigateBack: () -> Unit,
 ) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
@@ -257,6 +259,7 @@ fun DashboardContent(
                                     onUpdateWifiCredentials = { ssid, password ->
                                         onUpdateWifiCredentials(ssid, password)
                                     },
+                                    onUpdateDeviceName = { onUpdateDeviceName(it) }
                                 )
                             }
                         }
@@ -382,6 +385,7 @@ fun DashboardScreenPreview() {
             onUpdateTemperatureMin = {},
             onUpdateTemperatureMax = {},
             onUpdateWifiCredentials = { _, _ -> },
+            onUpdateDeviceName = {},
             onNavigateBack = {},
         )
     }

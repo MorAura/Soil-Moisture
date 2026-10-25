@@ -28,6 +28,8 @@ object SoilSenseConstants {
 
     val DEVICE_NAME_UUID: UUID = UUID.fromString("47bd94ad-57af-4b11-964f-97a3bf94b396")
 
+    val DEVICE_ID_UUID: UUID = UUID.fromString("03034c39-411a-40ec-b480-2c69edc542b4")
+
     const val EXPECTED_DATA_POINTS = 168
     const val REQUESTED_MTU = 517
 }

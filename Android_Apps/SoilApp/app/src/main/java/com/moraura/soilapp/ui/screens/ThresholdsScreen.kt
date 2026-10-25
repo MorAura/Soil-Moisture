@@ -44,6 +44,7 @@ fun ThresholdsScreen(
         onUpdateWifiCredentials = { ssid, password ->
             viewModel.updateWifiCredentials(ssid, password)
         },
+        onUpdateDeviceName = { viewModel.updateDeviceName(it) },
         onNavigateBack = onNavigateBack,
     )
 }
@@ -57,6 +58,7 @@ fun ThresholdsContent(
     onUpdateTemperatureMin: (Int) -> Unit,
     onUpdateTemperatureMax: (Int) -> Unit,
     onUpdateWifiCredentials: (ssid: String, password: String) -> Unit,
+    onUpdateDeviceName: (String) -> Unit,
 ) {
     ThresholdCategory(
         title = "Moisture Thresholds",
@@ -89,7 +91,8 @@ fun ThresholdsContent(
     )
 
     DeviceNameCategory(
-        deviceName = thresholds.deviceName
+        deviceName = thresholds.deviceName,
+        onSaveDeviceName = onUpdateDeviceName
     )
 
     WifiConfigCategory(
@@ -108,6 +111,7 @@ fun ThresholdsContentScreen(
     onUpdateTemperatureMin: (Int) -> Unit,
     onUpdateTemperatureMax: (Int) -> Unit,
     onUpdateWifiCredentials: (ssid: String, password: String) -> Unit,
+    onUpdateDeviceName: (String) -> Unit,
     onNavigateBack: () -> Unit
 ) {
     Scaffold(
@@ -137,7 +141,8 @@ fun ThresholdsContentScreen(
                 onUpdateMoistureMax = onUpdateMoistureMax,
                 onUpdateTemperatureMin = onUpdateTemperatureMin,
                 onUpdateTemperatureMax = onUpdateTemperatureMax,
-                onUpdateWifiCredentials = onUpdateWifiCredentials
+                onUpdateWifiCredentials = onUpdateWifiCredentials,
+                onUpdateDeviceName = onUpdateDeviceName
             )
         }
     }
@@ -145,7 +150,8 @@ fun ThresholdsContentScreen(
 
 @Composable
 fun DeviceNameCategory(
-    deviceName: String
+    deviceName: String,
+    onSaveDeviceName: (String) -> Unit
 ) {
     var nameInput by remember(deviceName) { mutableStateOf(deviceName) }
     Card(
@@ -176,11 +182,9 @@ fun DeviceNameCategory(
             )
             Spacer(modifier = Modifier.height(16.dp))
             Button(
-                onClick = { },
+                onClick = { onSaveDeviceName(nameInput) },
                 modifier = Modifier.align(Alignment.End)
             ) {
-//                Icon(Icons.Rounded.Save, contentDescription = null)
-//                Spacer(modifier = Modifier.width(8.dp))
                 Text("Rename Device")
             }
         }
@@ -351,6 +355,7 @@ fun ThresholdsScreenPreview() {
             onUpdateTemperatureMin = {},
             onUpdateTemperatureMax = {},
             onUpdateWifiCredentials = { _, _ -> },
+            onUpdateDeviceName = {},
             onNavigateBack = {}
         )
     }

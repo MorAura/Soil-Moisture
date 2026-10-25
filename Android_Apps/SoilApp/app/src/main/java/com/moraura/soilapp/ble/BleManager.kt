@@ -263,7 +263,8 @@ class BleManager(private val context: Context) {
                 SoilSenseConstants.TEMP_MAX_CHAR_UUID,
                 SoilSenseConstants.TEMP_MIN_CHAR_UUID,
                 SoilSenseConstants.ALERT_SSID_UUID,
-                SoilSenseConstants.ALERT_PASS_UUID
+                SoilSenseConstants.ALERT_PASS_UUID,
+                SoilSenseConstants.DEVICE_ID_UUID
             )
             for (uuid in thresholdChars) {
                 service.getCharacteristic(uuid)?.let { characteristic ->
@@ -347,6 +348,12 @@ class BleManager(private val context: Context) {
                 val name = String(data, Charsets.UTF_8).trimEnd('\u0000')
                 _thresholds.update { it.copy(deviceName = name) }
             }
+
+            SoilSenseConstants.DEVICE_ID_UUID -> {
+                val deviceId = String(data, Charsets.UTF_8).trimEnd('\u0000')
+                Log.d("BleManager", "Device ID: $deviceId")
+                // store this in a database
+            }
         }
     }
 
@@ -396,6 +403,7 @@ class BleManager(private val context: Context) {
         when (uuid) {
             SoilSenseConstants.ALERT_SSID_UUID -> _thresholds.update { it.copy(wifiSsid = value) }
             SoilSenseConstants.ALERT_PASS_UUID -> _thresholds.update { it.copy(wifiPassword = value) }
+            SoilSenseConstants.DEVICE_NAME_UUID -> _thresholds.update { it.copy(deviceName = value) }
         }
     }
 }

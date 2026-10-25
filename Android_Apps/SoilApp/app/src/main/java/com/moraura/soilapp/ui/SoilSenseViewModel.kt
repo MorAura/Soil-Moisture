@@ -52,6 +52,10 @@ class SoilSenseViewModel(application: Application) : AndroidViewModel(applicatio
         bleManager.writeStringCharacteristic(SoilSenseConstants.ALERT_PASS_UUID, value)
     }
 
+    fun updateDeviceName(value: String) {
+        bleManager.writeStringCharacteristic(SoilSenseConstants.DEVICE_NAME_UUID, value)
+    }
+
     fun updateWifiCredentials(ssid: String, pass: String) {
         viewModelScope.launch {
             updateWifiSsid(ssid)

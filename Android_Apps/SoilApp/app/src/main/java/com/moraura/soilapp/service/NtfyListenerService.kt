@@ -27,7 +27,7 @@ import kotlin.jvm.java
 class NtfyListenerService : Service() {
     val alertTopics = listOf(
         "oiiaioiiiai",
-        "oiiaioiiiai2"
+        "moraura-yjg6w-123"
     )
     private val client = OkHttpClient.Builder()
         .readTimeout(0, TimeUnit.MINUTES)

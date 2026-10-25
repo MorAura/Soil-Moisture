@@ -122,7 +122,7 @@ class NtfyListenerService : Service() {
         val notification = NotificationCompat.Builder(this, "ntfy_sync_channel")
             .setContentTitle("Listening for alerts")
             .setContentText("(Turn off this alert from notification channels)")
-            .setSmallIcon(android.R.drawable.ic_dialog_info) // Replace with your app's icon
+            .setSmallIcon(R.drawable.ic_notification) // Replace with your app's icon
             .build()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {

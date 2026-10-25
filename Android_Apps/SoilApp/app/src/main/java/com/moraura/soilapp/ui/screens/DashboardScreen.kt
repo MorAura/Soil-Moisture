@@ -131,7 +131,7 @@ fun DashboardContent(
             ) {
                 Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                     Text(
-                        text = "SoilSense Plant",
+                        text = thresholds.deviceName,
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -372,7 +372,8 @@ fun DashboardScreenPreview() {
                 moistureMin = 30,
                 moistureMax = 70,
                 temperatureMin = 15,
-                temperatureMax = 30
+                temperatureMax = 30,
+                deviceName = "SoilSense Preview"
             ),
             connectionState = ConnectionState.Connected,
             onDisconnect = {},

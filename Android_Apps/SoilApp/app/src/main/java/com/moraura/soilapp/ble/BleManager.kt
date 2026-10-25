@@ -257,6 +257,7 @@ class BleManager(private val context: Context) {
 
             // 3. Read threshold and WiFi values
             val thresholdChars = listOf(
+                SoilSenseConstants.DEVICE_NAME_UUID,
                 SoilSenseConstants.MOIST_MAX_CHAR_UUID,
                 SoilSenseConstants.MOIST_MIN_CHAR_UUID,
                 SoilSenseConstants.TEMP_MAX_CHAR_UUID,
@@ -340,6 +341,11 @@ class BleManager(private val context: Context) {
             SoilSenseConstants.ALERT_PASS_UUID -> {
                 val pass = String(data, Charsets.UTF_8).trimEnd('\u0000')
                 _thresholds.update { it.copy(wifiPassword = pass) }
+            }
+
+            SoilSenseConstants.DEVICE_NAME_UUID -> {
+                val name = String(data, Charsets.UTF_8).trimEnd('\u0000')
+                _thresholds.update { it.copy(deviceName = name) }
             }
         }
     }

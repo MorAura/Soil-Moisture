@@ -26,6 +26,8 @@ object SoilSenseConstants {
     val ALERT_SSID_UUID: UUID = UUID.fromString("d93c1417-f814-41c6-b38c-6d145b4df240")
     val ALERT_PASS_UUID: UUID = UUID.fromString("74d2f3b5-9553-409f-81d2-b2670feecaec")
 
+    val DEVICE_NAME_UUID: UUID = UUID.fromString("47bd94ad-57af-4b11-964f-97a3bf94b396")
+
     const val EXPECTED_DATA_POINTS = 168
     const val REQUESTED_MTU = 517
 }

@@ -19,6 +19,37 @@ temperature_sensor_handle_t temp_sensor = NULL;
 
 #include <Preferences.h>
 
+Preferences deviceSetup;
+
+char device_id[13]; // 12 digit HEX id derived from the mac address
+
+void setupDeviceId() {
+  uint64_t mac = ESP.getEfuseMac();
+  snprintf(device_id, sizeof(device_id), "%04X%08X", (uint16_t)(mac >> 32), (uint32_t)mac);
+}
+
+char device_name[33];
+
+void saveDeviceName(const String &name = "") {
+  deviceSetup.begin("device", false);
+  deviceSetup.putString("name", name);
+  name.toCharArray(device_name, sizeof(device_name));
+}
+
+void loadDeviceName() {
+  deviceSetup.begin("device", true);
+  String deviceName = deviceSetup.getString("name", "");
+  
+  if (deviceName == "") {
+    if (device_id == "") {
+      Serial.println("ERROR: device_id should not be empty");
+    }
+    deviceName = "SoilSense-" + String(device_id);
+  }
+
+  deviceName.toCharArray(device_name, sizeof(device_name));
+}
+
 /*
 Connections:
   Moisture Sensor - GPIO0
@@ -128,9 +159,10 @@ BLECharacteristic* pMoistMinCharacteristic = NULL;
 BLECharacteristic* pTempMaxCharacteristic = NULL;
 BLECharacteristic* pTempMinCharacteristic = NULL;
 
-
 BLECharacteristic* pAlertSSIDCharacteristic = NULL;
 BLECharacteristic* pAlertPassCharacteristic = NULL;
+
+BLECharacteristic* pDeviceNameCharacteristic = NULL;
 
 #define SERVICE_UUID        "0d8d71f3-afea-4903-a389-d2db0912c1b1"
 
@@ -149,6 +181,8 @@ BLECharacteristic* pAlertPassCharacteristic = NULL;
 
 #define ALERT_SSID_UUID  "d93c1417-f814-41c6-b38c-6d145b4df240"
 #define ALERT_PASS_UUID  "74d2f3b5-9553-409f-81d2-b2670feecaec"
+
+#define DEVICE_NAME_UUID "47bd94ad-57af-4b11-964f-97a3bf94b396"
 
 class MyServerCallbacks: public BLEServerCallbacks {
     void onConnect(BLEServer* pServer) {
@@ -339,7 +373,9 @@ SharedCharacteristicCallbacks* myWriteCallbacks = new SharedCharacteristicCallba
 void StartBLE(){
   // Turn on BLE
 
-  BLEDevice::init("SoilSense");
+  char bleName[32];
+  snprintf(bleName, sizeof(bleName), "SoilSense-%s", device_id + 6); // upper half of the mac address (device identifier) to rename the device
+  BLEDevice::init(bleName);
   
   // REQUIRED: Expand MTU so the 168-byte arrays fit in a single packet
   BLEDevice::setMTU(517);
@@ -446,7 +482,6 @@ void StartBLE(){
                     );
   pAlertSSIDCharacteristic->addDescriptor(new BLE2902());
   pAlertSSIDCharacteristic->setCallbacks(myWriteCallbacks); // ATTACH CALLBACK
-  // pAlertSSIDCharacteristic->setValue(&tempHigh, 1);
 
   // Create the Characteristic Alert Pass Temperature
   pAlertPassCharacteristic = pService->createCharacteristic(
@@ -456,7 +491,14 @@ void StartBLE(){
                     );
   pAlertPassCharacteristic->addDescriptor(new BLE2902());
   pAlertPassCharacteristic->setCallbacks(myWriteCallbacks); // ATTACH CALLBACK
-  // pAlertPassCharacteristic->setValue(&tempHigh, 1);
+
+  pDeviceNameCharacteristic = pService->createCharacteristic(
+                      DEVICE_NAME_UUID,
+                      BLECharacteristic::PROPERTY_READ |
+                      BLECharacteristic::PROPERTY_WRITE 
+                    );
+  pDeviceNameCharacteristic->addDescriptor(new BLE2902());
+  pDeviceNameCharacteristic->setCallbacks(myWriteCallbacks);
   
 
   pService->start();
@@ -467,7 +509,7 @@ void StartBLE(){
   pAdvertising->setMinPreferred(0x0);
   BLEDevice::startAdvertising();
   
-  Serial.println("Waiting for a client connection...");
+  Serial.println(F("Waiting for a client connection..."));
 
   unsigned long currentMillis = millis();
   unsigned long previousMillis = currentMillis;
@@ -477,15 +519,15 @@ void StartBLE(){
     if (deviceConnected && !oldDeviceConnected) {
       readData();
       delay(300);
-      Serial.println("Sending Moisture Data...");
+      Serial.println(F("Sending Moisture Data..."));
       pMoistCharacteristic->setValue(moistureHist, sizeof(moistureHist));
       pMoistCharacteristic->notify();
       delay(300);  
-      Serial.println("Sending Temperature Data...");
+      Serial.println(F("Sending Temperature Data..."));
       pTempCharacteristic->setValue(tempHist, sizeof(tempHist));
       pTempCharacteristic->notify();
       delay(300);
-      Serial.println("Sending Light Data...");
+      Serial.println(F("Sending Light Data..."));
       pLightCharacteristic->setValue(lightHist, sizeof(lightHist));
       pLightCharacteristic->notify();
     }
@@ -522,7 +564,7 @@ void StartBLE(){
     if (!deviceConnected && oldDeviceConnected) {
       delay(500);  
       pServer->startAdvertising();
-      Serial.println("Client disconnected. Restarting advertising...");
+      Serial.println(F("Client disconnected. Restarting advertising..."));
       oldDeviceConnected = deviceConnected;
     } 
     delay(10);
@@ -535,7 +577,7 @@ void sendAlert(){
   esp_wifi_start();
 
   loadWifi();
-  Serial.println("Loading Wifi Password");
+  Serial.println(F("Loading Wifi Password"));
   Serial.print(wifi_ssid);
   Serial.print(" | ");
   Serial.println(wifi_pass);
@@ -544,7 +586,7 @@ void sendAlert(){
 
   Serial.println();
   Serial.println();
-  Serial.print("Waiting for WiFi... ");
+  Serial.print(F("Waiting for WiFi..."));
 
   unsigned long startTime = millis();
 
@@ -554,7 +596,7 @@ void sendAlert(){
   }
 
   if (WiFiMulti.run() != WL_CONNECTED) {
-    Serial.println("Wifi still not connected: prolly timed out");
+    Serial.println(F("WiFi Timed Out"));
     return;
   }
 
@@ -576,13 +618,14 @@ void sendAlert(){
 
   if (!client.connect(host, port)) {
     Serial.println("Connection failed.");
-    Serial.println("Waiting 5 seconds before retrying...");
+    Serial.println(F("Waiting 5 seconds before retrying..."));
     delay(5000);
     return;
   }
 
   String message = "{\"id\":";
-  message += ESP.getEfuseMac();
+  // message += ESP.getEfuseMac();
+  message += device_id;
   message += ", \"moistLow\":";
   message += moistLowAlert;
   message += ", \"moistHigh\":";
@@ -594,7 +637,10 @@ void sendAlert(){
   message += "}";
 
 
-  client.print("POST /oiiaioiiiai HTTP/1.1\r\n");
+  // client.print("POST /oiiaioiiiai HTTP/1.1\r\n");
+  client.print("POST /moraura-yjg6w-");
+  client.print(device_id);
+  client.print(" HTTP/1.1\r\n");
   client.print("Host: ntfy.sh\r\n");
   client.print("Content-Length: ");
   client.print(message.length());
@@ -636,6 +682,11 @@ void setup(){
   // Setup onboard led as output
   pixels.begin();
   pixels.clear(); 
+
+  // set up device_id
+  setupDeviceId();
+  Serial.printf("Device ID: %s\n", device_id);
+
   // Check for wakeup cause
   esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
   if (wakeup_reason == ESP_SLEEP_WAKEUP_TIMER) {

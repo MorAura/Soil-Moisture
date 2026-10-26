@@ -12,6 +12,7 @@ import android.util.Log
 import com.moraura.soilapp.data.model.ConnectionState
 import com.moraura.soilapp.data.model.SoilSenseMetrics
 import com.moraura.soilapp.data.model.SoilSenseThresholds
+import com.moraura.soilapp.data.repository.AlertTopicRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -35,6 +36,7 @@ class BleManager(private val context: Context) {
     private var bluetoothGatt: BluetoothGatt? = null
     private val scope = CoroutineScope(Dispatchers.Main)
     private var hasInitializedGatt = false
+    private val alertTopicRepository = AlertTopicRepository(context)
 
     private val _connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected)
     val connectionState = _connectionState.asStateFlow()
@@ -352,7 +354,11 @@ class BleManager(private val context: Context) {
             SoilSenseConstants.DEVICE_ID_UUID -> {
                 val deviceId = String(data, Charsets.UTF_8).trimEnd('\u0000')
                 Log.d("BleManager", "Device ID: $deviceId")
-                // store this in a database
+                scope.launch(Dispatchers.IO) {
+                    val currentName = _thresholds.value.deviceName.ifBlank { "SoilSense" }
+                    val alertTopic = "moraura-yjg6w-$deviceId"
+                    alertTopicRepository.saveAlertTopic(deviceId, currentName, alertTopic)
+                }
             }
         }
     }

@@ -296,12 +296,13 @@ void readData(){
   }
 
   if (moistLowAlert || moistHighAlert || tempLowAlert || tempHighAlert){
-    digitalWrite(LedPin,HIGH);
     Serial.println("Alert");
+    pixels.setPixelColor(0, pixels.Color(100, 0, 0)); 
+    pixels.show();
     sendAlert();
-
   } else {
-    digitalWrite(LedPin,LOW);
+    // pixels.clear();
+    // pixels.show();
   }
 
   moistureHist[167] = moistureVal;
@@ -531,6 +532,9 @@ void StartBLE(){
   unsigned long currentMillis = millis();
   unsigned long previousMillis = currentMillis;
 
+  pixels.setPixelColor(0, pixels.Color(0, 0, 100)); 
+  pixels.show();
+
   while (deviceConnected || currentMillis - previousMillis < 30000) {
     currentMillis = millis();
     if (deviceConnected && !oldDeviceConnected) {
@@ -553,24 +557,6 @@ void StartBLE(){
       previousMillis = currentMillis; 
       // keep resetting the 60s timer while the device is connected
       // so when it disconnects, it's a 60s timer
-
-      // FOR TESTING  
-      /*
-      readData(); 
-
-      delay(500);
-      Serial.println("Sending Moisture Data...");
-      pMoistCharacteristic->setValue(moistureHist, sizeof(moistureHist));
-      pMoistCharacteristic->notify();
-      delay(500);  
-      Serial.println("Sending Temperature Data...");
-      pTempCharacteristic->setValue(tempHist, sizeof(tempHist));
-      pTempCharacteristic->notify();
-      delay(500);
-      Serial.println("Sending Light Data...");
-      pLightCharacteristic->setValue(lightHist, sizeof(lightHist));
-      pLightCharacteristic->notify();
-      */
       
       // Update real time readings
       realtimeRead();
@@ -585,12 +571,17 @@ void StartBLE(){
       oldDeviceConnected = deviceConnected;
     } 
     delay(10);
-  }  
+  }
+  if (moistLowAlert || moistHighAlert || tempLowAlert || tempHighAlert){
+    pixels.setPixelColor(0, pixels.Color(100, 0, 0)); 
+    pixels.show();
+  } else {
+    pixels.clear();
+    pixels.show();
+  }
 }
 
 void sendAlert(){
-  pixels.setPixelColor(0, pixels.Color(100, 0, 0)); 
-  pixels.show();
   esp_wifi_start();
 
   loadWifi();
@@ -701,6 +692,7 @@ void setup(){
   // Setup onboard led as output
   pixels.begin();
   pixels.clear(); 
+  pixels.show();
 
   // set up device_id
   setupDeviceId();
@@ -713,11 +705,12 @@ void setup(){
     pixels.setPixelColor(0, pixels.Color(0, 100, 0)); 
     pixels.show();
     delay(1000);
+    pixels.clear();
     readData();
   } else if (wakeup_reason == ESP_SLEEP_WAKEUP_GPIO) {
     Serial.println("Woke up from PIN");
-    pixels.setPixelColor(0, pixels.Color(0, 0, 100)); 
-    pixels.show();
+    // pixels.setPixelColor(0, pixels.Color(0, 0, 100)); 
+    // pixels.show();
     StartBLE();
   } else {
     Serial.println("First boot");
@@ -725,6 +718,8 @@ void setup(){
     pixels.show();
     delay(1000);
     readData();
+    pixels.clear();
+    pixels.show();
   }
 
   // Setup wake pin and sleep timer
@@ -733,8 +728,8 @@ void setup(){
   esp_deep_sleep_enable_gpio_wakeup(pin_mask, ESP_GPIO_WAKEUP_GPIO_LOW);
   esp_sleep_enable_timer_wakeup(SLEEP_DURATION_SEC * uS_TO_S_FACTOR);
 
-  pixels.clear(); 
-  pixels.show();
+  //pixels.clear(); 
+  //pixels.show();
   Serial.println("Entering deep sleep...");
   Serial.flush();
   esp_deep_sleep_start();

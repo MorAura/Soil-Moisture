@@ -65,7 +65,7 @@ Connections:
 
 // Determined experimentally
 #define MoistureMax 3130
-#define MoistureMin 1270
+#define MoistureMin 1000
 
 // To store old data
 RTC_DATA_ATTR uint8_t moistureHist[168] = {0};
@@ -387,10 +387,12 @@ void StartBLE(){
   // Turn on BLE
 
   loadDeviceName();
+  loadWifi();
   BLEDevice::init(device_name);
   
   // REQUIRED: Expand MTU so the 168-byte arrays fit in a single packet
   BLEDevice::setMTU(517);
+
 
   pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks());
@@ -493,6 +495,7 @@ void StartBLE(){
                       BLECharacteristic::PROPERTY_WRITE 
                     );
   // pAlertSSIDCharacteristic->addDescriptor(new BLE2902());
+  pAlertSSIDCharacteristic->setValue(wifi_ssid);
   pAlertSSIDCharacteristic->setCallbacks(myWriteCallbacks); // ATTACH CALLBACK
 
   // Create the Characteristic Alert Pass Temperature
@@ -509,6 +512,7 @@ void StartBLE(){
                       BLECharacteristic::PROPERTY_READ |
                       BLECharacteristic::PROPERTY_WRITE 
                     );
+  pDeviceNameCharacteristic->setValue(device_name);
   // pDeviceNameCharacteristic->addDescriptor(new BLE2902());
   pDeviceNameCharacteristic->setCallbacks(myWriteCallbacks);
 
@@ -538,8 +542,8 @@ void StartBLE(){
   while (deviceConnected || currentMillis - previousMillis < 30000) {
     currentMillis = millis();
     if (deviceConnected && !oldDeviceConnected) {
-      readData();
-      delay(300);
+      //readData();
+      delay(500);
       Serial.println(F("Sending Moisture Data..."));
       pMoistCharacteristic->setValue(moistureHist, sizeof(moistureHist));
       pMoistCharacteristic->notify();
@@ -552,24 +556,26 @@ void StartBLE(){
       pLightCharacteristic->setValue(lightHist, sizeof(lightHist));
       pLightCharacteristic->notify();
     }
-
-    if (deviceConnected) {
-      previousMillis = currentMillis; 
-      // keep resetting the 60s timer while the device is connected
-      // so when it disconnects, it's a 60s timer
-      
-      // Update real time readings
-      realtimeRead();
-
-      oldDeviceConnected = deviceConnected;
-    }
-
+    
     if (!deviceConnected && oldDeviceConnected) {
       delay(500);  
       pServer->startAdvertising();
       Serial.println(F("Client disconnected. Restarting advertising..."));
       oldDeviceConnected = deviceConnected;
     } 
+
+    if (deviceConnected) {
+      previousMillis = currentMillis; 
+      oldDeviceConnected = deviceConnected;
+      // keep resetting the 60s timer while the device is connected
+      // so when it disconnects, it's a 60s timer
+      
+      // Update real time readings
+      realtimeRead();
+
+    }
+
+    
     delay(10);
   }
   if (moistLowAlert || moistHighAlert || tempLowAlert || tempHighAlert){
@@ -706,6 +712,7 @@ void setup(){
     pixels.show();
     delay(1000);
     pixels.clear();
+    pixels.show();
     readData();
   } else if (wakeup_reason == ESP_SLEEP_WAKEUP_GPIO) {
     Serial.println("Woke up from PIN");
@@ -738,4 +745,3 @@ void setup(){
 void loop(){
 
 }
-

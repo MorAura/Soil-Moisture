@@ -12,7 +12,7 @@ temperature_sensor_handle_t temp_sensor = NULL;
 
 #include "esp_sleep.h"
 #define uS_TO_S_FACTOR 1000000ULL   // Conversion factor for micro seconds to seconds
-#define SLEEP_DURATION_SEC  60
+#define SLEEP_DURATION_SEC  3600
 
 #include "driver/gpio.h"
 #define WAKEUP_GPIO_PIN GPIO_NUM_5
@@ -218,7 +218,7 @@ void realtimeRead(){
   float tempVal_float = 1/(1/298.15 + log(thermistor_resistance/10000)/Beta) - 273.15;
   
   uint8_t moistureVal = constrain(map(moistureRead,MoistureMin,MoistureMax,100,0), 0, 100);
-  uint8_t lightVal = constrain(map(lightRead,2200,4095,0,100), 0, 100);
+  uint8_t lightVal = constrain(map(lightRead,0,4095,0,100), 0, 100);
   uint8_t tempVal = round(tempVal_float);
   
   Serial.print("Moist : ");
@@ -228,15 +228,15 @@ void realtimeRead(){
   Serial.print(" | Temp : ");
   Serial.println(tempRead);
 
-  Serial.println("Sending Moisture Data...");
+  //Serial.println("Sending Moisture Data...");
   pMoistRTCharacteristic->setValue(&moistureVal, sizeof(moistureVal));
   pMoistRTCharacteristic->notify();
   delay(100);  
-  Serial.println("Sending Temperature Data...");
+  //Serial.println("Sending Temperature Data...");
   pTempRTCharacteristic->setValue(&tempVal, sizeof(tempVal));
   pTempRTCharacteristic->notify();
   delay(100);
-  Serial.println("Sending Light Data...");
+  //Serial.println("Sending Light Data...");
   pLightRTCharacteristic->setValue(&lightVal, sizeof(lightVal));
   pLightRTCharacteristic->notify();
   delay(100);
@@ -547,15 +547,15 @@ void StartBLE(){
     if (deviceConnected && !oldDeviceConnected) {
       //readData();
       delay(500);
-      Serial.println(F("Sending Moisture Data..."));
+      //Serial.println(F("Sending Moisture Data..."));
       pMoistCharacteristic->setValue(moistureHist, sizeof(moistureHist));
       pMoistCharacteristic->notify();
       delay(300);  
-      Serial.println(F("Sending Temperature Data..."));
+      //Serial.println(F("Sending Temperature Data..."));
       pTempCharacteristic->setValue(tempHist, sizeof(tempHist));
       pTempCharacteristic->notify();
       delay(300);
-      Serial.println(F("Sending Light Data..."));
+      //Serial.println(F("Sending Light Data..."));
       pLightCharacteristic->setValue(lightHist, sizeof(lightHist));
       pLightCharacteristic->notify();
     }

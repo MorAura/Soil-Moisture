@@ -57,11 +57,14 @@ Connections:
   Moisture Sensor - GPIO0
   Thermistor - GPIO1
   Light Sensor - GPIO2
+  Moisture Sensor Power - GPIO4
+  Wake Button - GPIO5
 */
 
 #define MoistPin 0
 #define TempPin 1
 #define LightPin 2
+#define MoistPowerPin 4
 
 // Determined experimentally
 #define MoistureMax 3130
@@ -694,7 +697,9 @@ void setup(){
   pinMode(MoistPin,INPUT);
   pinMode(TempPin,INPUT);
   pinMode(LightPin,INPUT);
-
+  // Setup and enable power to moisture sensor
+  pinMode(MoistPowerPin,OUTPUT);
+  digitalWrite(MoistPowerPin,HIGH);
   // Setup onboard led as output
   pixels.begin();
   pixels.clear(); 
@@ -734,7 +739,8 @@ void setup(){
   uint64_t pin_mask = (1ULL << WAKEUP_GPIO_PIN);
   esp_deep_sleep_enable_gpio_wakeup(pin_mask, ESP_GPIO_WAKEUP_GPIO_LOW);
   esp_sleep_enable_timer_wakeup(SLEEP_DURATION_SEC * uS_TO_S_FACTOR);
-
+  // Power down the moisture sensor
+  digitalWrite(MoistPowerPin,LOW);
   //pixels.clear(); 
   //pixels.show();
   Serial.println("Entering deep sleep...");

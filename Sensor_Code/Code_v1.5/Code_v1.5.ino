@@ -2,7 +2,7 @@
 #include <Adafruit_NeoPixel.h>
 #define LedPin 10
 #define NUM_LEDS 1
-Adafruit_NeoPixel pixels(NUM_LEDS, LedPin, NEO_RGB + NEO_KHZ800);
+Adafruit_NeoPixel pixels(NUM_LEDS, LedPin, NEO_GRB + NEO_KHZ800);
 
 // Internal temp config
 /*
@@ -259,7 +259,7 @@ void readData(){
   float tempVal_float = 1/(1/298.15 + log(thermistor_resistance/10000)/Beta) - 275.15;
   
   uint8_t moistureVal = map(moistureRead,MoistureMin,MoistureMax,100,0);
-  uint8_t lightVal = map(lightRead,2200,4095,0,100);
+  uint8_t lightVal = map(lightRead,0,4095,0,100);
   uint8_t tempVal = round(tempVal_float);
   
   Serial.print("Moist : ");
